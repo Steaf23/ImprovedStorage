@@ -72,7 +72,6 @@ public class BluestoneWireBlock extends Block
 		   														  Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 16.0D, 1.0D, 16.0D), 
 		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 1.0D, 13.0D), 
 		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 1.0D, 16.0D)};
-    //private boolean canProvidePower = true;
     /** List of blocks to update with redstone. */
     private final Set<BlockPos> blocksNeedingUpdate = Sets.newHashSet();
 
