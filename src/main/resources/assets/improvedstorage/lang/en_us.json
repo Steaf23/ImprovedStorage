@@ -1,0 +1,14 @@
+{
+	"itemGroup.impstab":"Improved Storage",
+	
+	"item.improvedstorage.bluestone_blend": "Bluestone Blend",
+	"item.improvedstorage.bluestone_ingot": "Bluestone Ingot",
+	
+	"block.improvedstorage.bluestone_block": "Block of Bluestone",
+	"block.improvedstorage.stone_chest": "Stone Reinforced Chest",
+	"block.improvedstorage.bluestone_table": "Bluestone Infused Crafting Table",
+	
+	"container.improvedstorage.stone_chest": "Stone Reinforced Chest",
+	
+	"entity.improvedstorage.stone_golem_entity": "Stone Golem"
+}
