@@ -7,6 +7,9 @@ import steef23.improvedstorage.common.block.BluestoneSide;
 import steef23.improvedstorage.common.block.BluestoneWireBlock;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
 
+//TODO ADD METHOD FOR PLAYER INSERTION USING HAND
+//TODO ADD METHOD TO SPIT OUT ITEMS AT THE END IF NO INVENTORY
+
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 {
 	protected BluestoneWireTileEntity(TileEntityType<?> typeIn) 

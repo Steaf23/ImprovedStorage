@@ -1,14 +1,13 @@
 package steef23.improvedstorage.common.tileentity;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
@@ -20,21 +19,23 @@ import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.minecraftforge.items.VanillaInventoryCodeHooks;
 
 public abstract class AbstractItemPipeTileEntity extends TileEntity implements ITickableTileEntity
 {
 	public final int speed;
 	public int cooldownTimer;
-	public LinkedList<PipeItem> items;
+	public ArrayList<PipeItem> items;
 	private boolean[] availableFaces;
+	private boolean hasChanged;
 	
 	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn, int speed)
 	{
 		super(tileEntityTypeIn);
 		this.speed = speed;
-		this.items = new LinkedList<PipeItem>();
+		this.items = new ArrayList<>();
 		this.availableFaces = new boolean[6];
+		this.hasChanged = false;
 	}
 	
 	private void updateConnectedFaces()
@@ -52,61 +53,84 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	@Override
 	public void tick()
 	{
-		this.updateConnectedFaces();
-		Iterator<PipeItem> itr = this.items.iterator();
-		while (itr.hasNext())
+		if (!world.isRemote)
 		{
-			PipeItem item = itr.next();
-			if (item.getTicksInPipe() > 20)
+			this.updateConnectedFaces();
+			
+			//INSERT INTO OTHER INVENTORIES
+			Iterator<PipeItem> itr = this.items.iterator();
+			while (itr.hasNext())
 			{
-				if (this.sendItem(item, item.getTarget()))
+				PipeItem item = itr.next();
+				if (item.getTicksInPipe() > this.speed)
 				{
-					itr.remove();
+					if (this.sendItem(item, item.getTarget()))
+					{
+						itr.remove();
+						this.hasChanged = true;
+					}
+				}	
+			}
+			//EXTRACT FROM OTHER INVENTORIES
+			this.cooldownTimer++;
+			if (this.cooldownTimer >= this.speed)
+			{
+				this.cooldownTimer = 0;
+				for (Direction face : Direction.values())
+				{
+					if (this.isfaceConnected(face))
+					{
+						//if items have been sent out OR came in
+						this.hasChanged |= this.pullFromInventory(face);
+					}
 				}
-			}	
+			}
+			if (hasChanged)
+			{
+				hasChanged = false;
+				this.markDirty();
+			}
 		}
-	}
-	
-	/* To be called right after the item entered the wire
-	 * 
-	 * */
-	public boolean receiveItem(PipeItem item, Direction source)
-	{
-		// convert itemStack to wireItem
-		this.items.addLast(item);
-		return true;
 	}
 	
 	public boolean sendItem(PipeItem item, Direction outgoingFace)
 	{
 		if (this.isfaceConnected(outgoingFace))
 		{
-			TileEntity te = this.getWorld().getTileEntity(pos);
+			TileEntity te = this.getWorld().getTileEntity(this.pos.offset(outgoingFace));
 			if (!(te instanceof AbstractItemPipeTileEntity))
 			{
-				IItemHandlerModifiable itemHandler = getItemHandlerFromTileEntity(te);
-				if (itemHandler != null)
-				{
-					ItemStack stack = insertIntoHandler(itemHandler, item.getItemStack(), outgoingFace.getOpposite());
-					if (stack.isEmpty())
-					{
-						te.markDirty();
-						return true;
-					}
-					
-					item.stack = stack;
-					item.source = outgoingFace;
-					
-//					//if item is succesfully extracted
-//					if (IntStream.range(0, itemHandler.getSlots()).anyMatch((slot) -> {
-//						return !itemHandler.getStackInSlot(slot).isEmpty() ? 
-//								this.receiveItem(itemHandler.extractItem(slot, 1, false), direction) : false;
-//					}))
-//					{
-//						System.out.println("ITEM EXTRACTED");
-//						break;
-//					}
-				}
+				return VanillaInventoryCodeHooks.getItemHandler(this.world, 
+																te.getPos().getX(), 
+																te.getPos().getY(), 
+																te.getPos().getZ(), 
+																outgoingFace.getOpposite())
+						.map(destinationResult ->
+						{
+							IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
+							if (isInventoryFull(itemHandler))
+							{
+								return false;
+							}
+							else
+							{
+								if (item.isValid())
+								{
+									ItemStack insertStack = item.getItemStack().copy();
+		                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
+		                            if (remainder.isEmpty())
+		                            {
+		                                return true;
+		                            }
+		                            item.stack = remainder;
+		                            //set source to outgoing, meaning it will bounce back
+		                            item.source = outgoingFace;
+		                            item.ticksInPipe = 0;
+								}
+								return false;
+							}
+						})
+						.orElse(false);
 			}
 			else if (te instanceof AbstractItemPipeTileEntity)
 			{
@@ -116,9 +140,50 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		return false;
 	}
 	
-	private IItemHandlerModifiable getItemHandlerFromTileEntity(TileEntity te)
+	private boolean pullFromInventory(Direction incomingFace)
 	{
-		return te instanceof IItemHandlerModifiable ? (IItemHandlerModifiable)te : te instanceof IInventory ? new InvWrapper((IInventory)te) : null; 
+		TileEntity te = this.getWorld().getTileEntity(this.pos.offset(incomingFace));
+		if (te != null && !(te instanceof AbstractItemPipeTileEntity))
+		{
+			return VanillaInventoryCodeHooks.getItemHandler(this.world, 
+															te.getPos().getX(), 
+															te.getPos().getY(), 
+															te.getPos().getZ(), 
+															incomingFace.getOpposite())
+					.map(itemHandlerResult ->
+					{
+						IItemHandlerModifiable handler = (IItemHandlerModifiable)itemHandlerResult.getKey();
+						
+						for (int index = 0; index < handler.getSlots(); index++)
+						{
+							ItemStack extractItem = handler.extractItem(index, handler.getStackInSlot(index).getCount(), true);
+							if (!extractItem.isEmpty())
+							{
+								extractItem = handler.extractItem(index, handler.getStackInSlot(index).getCount(), false);
+								PipeItem item = new PipeItem(extractItem, incomingFace);
+								this.receiveItem(item, incomingFace);
+								this.markDirty();
+								return true;
+							}
+						}
+						return false;
+					})
+					.orElse(false);
+		}
+		return false;
+	}
+
+	public boolean receiveItem(PipeItem item, Direction source)
+	{
+		item.target = calculateTargetFace(source);
+		this.items.add(item);
+		return true;
+	}
+
+	//TODO ADD TARGET FACE CALCULATION
+	public Direction calculateTargetFace(Direction source)
+	{
+		return source.getOpposite();
 	}
 	
 	public boolean isfaceConnected(Direction face)
@@ -128,6 +193,14 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 			return this.availableFaces[face.getIndex()];
 		}
 		return false;
+	}
+	
+	public void dropInventory()
+	{
+		for (PipeItem item : this.items)
+		{
+	    	InventoryHelper.spawnItemStack(this.world, this.pos.getX(), this.pos.getY(), this.pos.getZ(), item.getItemStack());
+		}
 	}
 
 	@Override
@@ -147,9 +220,10 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public void read(BlockState state, CompoundNBT nbt)
 	{
 		super.read(state, nbt);
-		
+		ArrayList<PipeItem> items = new ArrayList<>();
 		ListNBT listNBT = nbt.getList("Items", 10);
-		listNBT.forEach((item)-> this.items.add(PipeItem.read((CompoundNBT)item)));
+		listNBT.forEach((item)-> items.add(PipeItem.read((CompoundNBT)item)));
+		this.items = items;
 	}
 	
 	@Override
@@ -191,7 +265,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	 */
 	
 	//attempts to insert item into target inventory, returns remainder
-	//conatis direction for sided inventories
+	//contains direction for sided inventories
 	private static ItemStack insertIntoHandler(IItemHandlerModifiable targetHandler, ItemStack stack, Direction direction)
 	{
 		if (targetHandler instanceof ISidedInventory && direction != null) 
@@ -276,18 +350,31 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		}
 	}
 	
+    private static boolean isInventoryFull(IItemHandlerModifiable itemHandler)
+    {
+        for (int slot = 0; slot < itemHandler.getSlots(); slot++)
+        {
+            ItemStack stackInSlot = itemHandler.getStackInSlot(slot);
+            if (stackInSlot.isEmpty() || stackInSlot.getCount() < itemHandler.getSlotLimit(slot))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+	
 	/* ---------------------------------------------
 	 * PIPEITEM CLASS
 	 * ---------------------------------------------
 	 */
 	
+    //TODO ALLOW SOURCE TO BE NULL
 	public static class PipeItem
 	{
 		private ItemStack stack;
     	private int ticksInPipe;
     	private Direction source;
     	private Direction target;
-    	private boolean dead = false;
     	
     	protected PipeItem(ItemStack stack, Direction source)
     	{
@@ -299,15 +386,11 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	protected void tick()
     	{
     		this.ticksInPipe++;
-    		if (this.ticksInPipe >= 20)
-    		{
-    			this.dead = true;
-    		}
     	}
     	
-    	public boolean isDead()
+    	public boolean isValid()
     	{
-    		return this.dead;
+    		return this.getItemStack().isEmpty();
     	}
     	
     	public CompoundNBT write(CompoundNBT compound)

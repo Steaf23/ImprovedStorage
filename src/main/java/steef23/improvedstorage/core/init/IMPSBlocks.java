@@ -28,6 +28,7 @@ public class IMPSBlocks
 	public static final RegistryObject<Block> BLUESTONE_WIRE = BLOCKS.register("bluestone_wire", () -> 
 	new BluestoneWireBlock(Block.Properties.create(Material.IRON)
 							  			   .hardnessAndResistance(0.0f,  5.0f)
+							  			   .doesNotBlockMovement()
 							  			   .sound(SoundType.METAL)
 							  			   .notSolid()));
 	

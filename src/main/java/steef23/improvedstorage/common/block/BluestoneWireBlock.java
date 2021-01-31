@@ -1,6 +1,5 @@
 package steef23.improvedstorage.common.block;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -34,7 +33,7 @@ import net.minecraft.world.IWorld;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
-import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
+import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity;
 import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
@@ -311,6 +310,12 @@ public class BluestoneWireBlock extends Block
     public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
     	if (!isMoving && !state.isIn(newState.getBlock())) 
     	{
+            TileEntity te = worldIn.getTileEntity(pos);
+            if (te instanceof AbstractItemPipeTileEntity) 
+            {
+            	((AbstractItemPipeTileEntity)te).dropInventory();
+            }
+            
     		super.onReplaced(state, worldIn, pos, newState, isMoving);
     		if (!worldIn.isRemote) 
     		{
@@ -421,24 +426,12 @@ public class BluestoneWireBlock extends Block
    	{
    		if (!worldIn.isRemote)
    		{
-   			if (player.getHeldItem(handIn) == ItemStack.EMPTY)
+   			if (player.getHeldItem(handIn) != ItemStack.EMPTY)
    	   		{
    	   			TileEntity te = worldIn.getTileEntity(pos);
    	   			if (te instanceof BluestoneWireTileEntity)
    	   			{
-   	   				List<PipeItem> items = ((BluestoneWireTileEntity) te).items;
-   	   				if (!items.isEmpty())
-   	   				{
-   		   				((BluestoneWireTileEntity) te).items.forEach((wire) -> {
-   		   					System.out.println(wire.getItemStack().getItem() + 
-   		   							", Source: " + wire.getSource() + 
-   		   							", Target: " + wire.getTarget() + "");
-   		   				});
-   	   				}
-   	   				else
-   	   				{
-   	   					System.out.println("No Items Found!?");
-   	   				}
+   	   				//TODO Add method call to put items in from hand
    	   			}
    	   		}
    		}

@@ -1,5 +1,7 @@
 package steef23.improvedstorage.client.renderer.tileentity;
 
+import java.util.ArrayList;
+
 import com.mojang.blaze3d.matrix.MatrixStack;
 
 import net.minecraft.client.Minecraft;
@@ -9,6 +11,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
@@ -26,12 +29,15 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 	public void render(BluestoneWireTileEntity tileEntityIn, float partialTicks, MatrixStack matrixStackIn,
 			IRenderTypeBuffer bufferIn, int combinedLightIn, int combinedOverlayIn) 
 	{
-		for (PipeItem pipeItem : tileEntityIn.items) 
+		ArrayList<PipeItem> items = tileEntityIn.items;
+		for (int i = 0; i < items.size(); i++) 
 		{
-			ItemStack stack = pipeItem.getItemStack();
-			if (!stack.isEmpty()) {
+			ItemStack stack = items.get(i).getItemStack();
+			if (!stack.isEmpty()) 
+			{
 				matrixStackIn.push();
-				matrixStackIn.translate(0.5D, 1.5D, 0.5D);
+				Vector3d vec = new Vector3d((double)i / items.size(), 0.5D, (double)i / items.size());
+				matrixStackIn.translate(vec.getX(), vec.getY(), vec.getZ());
 				renderItem(stack, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
 				matrixStackIn.pop();
 			}
