@@ -1,16 +1,12 @@
 package steef23.improvedstorage.common.block;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -30,18 +26,16 @@ import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.Mutable;
 import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
 import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity;
-import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity.WireItem;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
 
@@ -56,108 +50,159 @@ public class BluestoneWireBlock extends Block
 		   																												  Direction.EAST, EAST, 
 		   																												  Direction.SOUTH, SOUTH, 
 		   																												  Direction.WEST, WEST));
-	protected static final VoxelShape[] SHAPES = new VoxelShape[]{Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 13.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 13.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 13.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 13.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 13.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 13.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 13.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 13.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 16.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 16.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 16.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 16.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 16.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 16.0D, 1.0D, 16.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 1.0D, 13.0D), 
-		   														  Block.makeCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 1.0D, 16.0D)};
-    /** List of blocks to update with redstone. */
-    private final Set<BlockPos> blocksNeedingUpdate = Sets.newHashSet();
+	private static final VoxelShape BASE_SHAPE = Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 13.0D, 1.0D, 13.0D);
+	private static final Map<Direction, VoxelShape> SIDE_TO_SHAPE = Maps.newEnumMap(ImmutableMap.of(
+			Direction.NORTH, Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 13.0D, 1.0D, 13.0D), 
+			Direction.SOUTH, Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 13.0D, 1.0D, 16.0D), 
+			Direction.EAST, Block.makeCuboidShape(3.0D, 0.0D, 3.0D, 16.0D, 1.0D, 13.0D), 
+			Direction.WEST, Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 13.0D, 1.0D, 13.0D)));
+	
+	private static final Map<Direction, VoxelShape> SIDE_TO_ASCENDING_SHAPE = Maps.newEnumMap(ImmutableMap.of(
+			Direction.NORTH, VoxelShapes.or(SIDE_TO_SHAPE.get(Direction.NORTH), Block.makeCuboidShape(3.0D, 0.0D, 0.0D, 13.0D, 16.0D, 1.0D)), 
+			Direction.SOUTH, VoxelShapes.or(SIDE_TO_SHAPE.get(Direction.SOUTH), Block.makeCuboidShape(3.0D, 0.0D, 15.0D, 13.0D, 16.0D, 16.0D)), 
+			Direction.EAST, VoxelShapes.or(SIDE_TO_SHAPE.get(Direction.EAST), Block.makeCuboidShape(15.0D, 0.0D, 3.0D, 16.0D, 16.0D, 13.0D)), 
+			Direction.WEST, VoxelShapes.or(SIDE_TO_SHAPE.get(Direction.WEST), Block.makeCuboidShape(0.0D, 0.0D, 3.0D, 1.0D, 16.0D, 13.0D))));
+	private final Map<BlockState, VoxelShape> stateToShapeMap = Maps.newHashMap();
+	
+	private final BlockState sideBaseState;
 
     public BluestoneWireBlock(Block.Properties properties) 
     {
-      super(properties);
-      this.setDefaultState(this.stateContainer.getBaseState().with(NORTH, BluestoneSide.NONE)
-    		  												 .with(EAST, BluestoneSide.NONE)
-    		  												 .with(SOUTH, BluestoneSide.NONE)
-    		  												 .with(WEST, BluestoneSide.NONE));
+    	super(properties);
+    	this.setDefaultState(this.stateContainer.getBaseState().with(NORTH, BluestoneSide.NONE)
+    		  												   .with(EAST, BluestoneSide.NONE)
+    		  												   .with(SOUTH, BluestoneSide.NONE)
+    		  												   .with(WEST, BluestoneSide.NONE));
+    	this.sideBaseState = this.getDefaultState().with(NORTH, BluestoneSide.SIDE)
+    		  									   .with(EAST, BluestoneSide.SIDE)
+    		  									   .with(SOUTH, BluestoneSide.SIDE)
+    		  									   .with(WEST, BluestoneSide.SIDE);
+    	this.getStateContainer().getValidStates().forEach((state) -> { 
+    		this.stateToShapeMap.put(state, this.getShapeForState(state));
+    	});
     }
    
-    /*Get the AABB shape for the bluewire instance*/
+    private VoxelShape getShapeForState(BlockState state)
+    {
+    	VoxelShape voxelShape = BASE_SHAPE;
+    	for(Direction direction : Direction.Plane.HORIZONTAL) 
+    	{
+    		BluestoneSide bluestoneSide = state.get(FACING_PROPERTY_MAP.get(direction));
+            if (bluestoneSide == BluestoneSide.SIDE)
+            {
+            	voxelShape = VoxelShapes.or(voxelShape, SIDE_TO_SHAPE.get(direction));
+            } else if (bluestoneSide == BluestoneSide.UP)
+            {
+            	voxelShape = VoxelShapes.or(voxelShape, SIDE_TO_ASCENDING_SHAPE.get(direction));
+            }
+         }
+
+         return voxelShape;
+    }
+    
     public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) 
     {
-    	return SHAPES[getAABBIndex(state)];
+    	return this.stateToShapeMap.get(state);
     }
-   
-    /*get the AABB for the bluewire instance*/
-    private static int getAABBIndex(BlockState state) 
-   	{
-    	int i = 0;
-    	boolean isConnectedToNorth = state.get(NORTH) != BluestoneSide.NONE;
-    	boolean isConnectedToEast = state.get(EAST) != BluestoneSide.NONE;
-    	boolean isConnectedToSouth = state.get(SOUTH) != BluestoneSide.NONE;
-    	boolean isConnectedToWest = state.get(WEST) != BluestoneSide.NONE;
-    	if (isConnectedToNorth || isConnectedToSouth && !isConnectedToNorth && !isConnectedToEast && !isConnectedToWest) 
-    	{
-    		i |= 1 << Direction.NORTH.getHorizontalIndex();
-    	}
-
-    	if (isConnectedToEast || isConnectedToWest && !isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth) 
-    	{
-    		i |= 1 << Direction.EAST.getHorizontalIndex();
-    	}
-
-    	if (isConnectedToSouth || isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth && !isConnectedToWest) 
-    	{
-    		i |= 1 << Direction.SOUTH.getHorizontalIndex();
-    	}
-
-    	if (isConnectedToWest || isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth && !isConnectedToWest) 
-    	{
-    		i |= 1 << Direction.WEST.getHorizontalIndex();
-    	}
-
-    	return i;
-   	}
     
     public BlockState getStateForPlacement(BlockItemUseContext context) 
    	{
-    	IBlockReader iblockreader = context.getWorld();
-    	BlockPos blockpos = context.getPos();
-    	return this.getDefaultState().with(WEST, this.getSide(iblockreader, blockpos, Direction.WEST))
-    		  					   	 .with(EAST, this.getSide(iblockreader, blockpos, Direction.EAST))
-    		  					   	 .with(NORTH, this.getSide(iblockreader, blockpos, Direction.NORTH))
-    		  					     .with(SOUTH, this.getSide(iblockreader, blockpos, Direction.SOUTH));
+    	return this.getUpdatedState(context.getWorld(), this.sideBaseState, context.getPos());
    	}
-
-    /**
-    * Update the provided state given the provided neighbor facing and neighbor state, returning a new state.
-    * For example, fences make their connections to the passed in state if possible, and wet concrete powder immediately
-    * returns its solidified counterpart.
-    * Note that this method should ideally consider only the specific face passed in.
-    */
-    public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) 
-    {
-    	BlockState newState;
-    	if (facing == Direction.DOWN) 
+    
+    private BlockState getUpdatedState(IBlockReader reader, BlockState state, BlockPos pos) 
+   	{
+    	boolean areAllSidesInvalid = areAllSidesInvalid(state);
+    	state = this.recalculateFacingState(reader, this.getDefaultState(), pos);
+    	if (areAllSidesInvalid && areAllSidesInvalid(state))
     	{
-    		newState = stateIn;
-    	} else 
+    		return state;
+    	}
+    	else
     	{
-    		newState = facing == Direction.UP ? stateIn.with(WEST, this.getSide(worldIn, currentPos, Direction.WEST))
-    											   .with(EAST, this.getSide(worldIn, currentPos, Direction.EAST))
-    											   .with(NORTH, this.getSide(worldIn, currentPos, Direction.NORTH))
-    											   .with(SOUTH, this.getSide(worldIn, currentPos, Direction.SOUTH)) 
-    											   : stateIn.with(FACING_PROPERTY_MAP.get(facing), this.getSide(worldIn, currentPos, facing));
+			boolean isConnectedToNorth = state.get(NORTH) != BluestoneSide.NONE;
+			boolean isConnectedToEast = state.get(EAST) != BluestoneSide.NONE;
+			boolean isConnectedToSouth = state.get(SOUTH) != BluestoneSide.NONE;
+			boolean isConnectedToWest = state.get(WEST) != BluestoneSide.NONE;
+			if (isConnectedToNorth || isConnectedToSouth && !isConnectedToNorth && !isConnectedToEast && !isConnectedToWest) 
+			{
+				state = state.with(NORTH, BluestoneSide.SIDE);
+			}
+		
+			if (isConnectedToEast || isConnectedToWest && !isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth) 
+			{
+				state = state.with(EAST, BluestoneSide.SIDE);
+			}
+		
+			if (isConnectedToSouth || isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth && !isConnectedToWest) 
+			{
+				state = state.with(SOUTH, BluestoneSide.SIDE);
+			}
+		
+			if (isConnectedToWest || isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth && !isConnectedToWest) 
+			{
+				state = state.with(WEST, BluestoneSide.SIDE);
+			}
+		
+			return state;
     	}
     	
-    	TileEntity te = worldIn.getTileEntity(currentPos);
-    	if (te instanceof BluestoneWireTileEntity)
+   	}
+    
+    private BlockState recalculateFacingState(IBlockReader reader, BlockState state, BlockPos pos) 
+    {
+    	boolean nonNormalCubeAbove = !reader.getBlockState(pos.up()).isNormalCube(reader, pos);
+
+        for(Direction direction : Direction.Plane.HORIZONTAL) 
+        {
+        	if (!state.get(FACING_PROPERTY_MAP.get(direction)).isValid()) 
+        	{
+        		BluestoneSide bluestoneSide = this.recalculateSide(reader, pos, direction, nonNormalCubeAbove);
+        		state = state.with(FACING_PROPERTY_MAP.get(direction), bluestoneSide);
+        	}
+        }
+        return state;
+    }
+    
+    /**
+     * Update the provided state given the provided neighbor facing and neighbor state, returning a new state.
+     * For example, fences make their connections to the passed in state if possible, and wet concrete powder immediately
+     * returns its solidified counterpart.
+     * Note that this method should ideally consider only the specific face passed in.
+     */
+    public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) 
+    {
+    	if (facing == Direction.DOWN) 
+     	{
+    		return stateIn;
+     	} 
+    	else if (facing == Direction.UP)
+     	{
+    		return this.getUpdatedState(worldIn, stateIn, currentPos);
+     	}
+    	else
     	{
-    		((BluestoneWireTileEntity) te).updateConnectedPositions(newState);
+    		BluestoneSide bluestoneSide = this.getSide(worldIn, currentPos, facing);
+    		return bluestoneSide.isValid() == stateIn.get(FACING_PROPERTY_MAP.get(facing)).isValid() && 
+    				!areAllSidesValid(stateIn) ? stateIn.with(FACING_PROPERTY_MAP.get(facing), bluestoneSide) 
+    						: this.getUpdatedState(worldIn, this.sideBaseState.with(FACING_PROPERTY_MAP.get(facing), bluestoneSide), currentPos);
     	}
-    	return newState;
+    }
+    
+    private static boolean areAllSidesValid(BlockState state)
+    {
+    	return state.get(NORTH).isValid() && 
+    			state.get(SOUTH).isValid() && 
+    			state.get(EAST).isValid() && 
+    			state.get(WEST).isValid();
+    }
+    
+    private static boolean areAllSidesInvalid(BlockState state)
+    {
+    	return !state.get(NORTH).isValid() && 
+    			!state.get(SOUTH).isValid() && 
+    			!state.get(EAST).isValid() && 
+    			!state.get(WEST).isValid();
     }
     
     /**
@@ -170,8 +215,8 @@ public class BluestoneWireBlock extends Block
     	Mutable mutableBlockPos = new BlockPos.Mutable();
 		for(Direction direction : Direction.Plane.HORIZONTAL) 
      	{
-			BluestoneSide redstoneside = state.get(FACING_PROPERTY_MAP.get(direction));
-			if (redstoneside != BluestoneSide.NONE && worldIn.getBlockState(mutableBlockPos.setPos(pos).move(direction)).getBlock() != this) 
+			BluestoneSide bluestoneSide = state.get(FACING_PROPERTY_MAP.get(direction));
+			if (bluestoneSide != BluestoneSide.NONE && worldIn.getBlockState(mutableBlockPos.setPos(pos).move(direction)).getBlock() != this) 
 			{
 				mutableBlockPos.move(Direction.DOWN);
 				BlockState blockstate = worldIn.getBlockState(mutableBlockPos);
@@ -193,101 +238,53 @@ public class BluestoneWireBlock extends Block
 			}
     	}
     }
-
+    
     private BluestoneSide getSide(IBlockReader worldIn, BlockPos pos, Direction face) 
     {
-    	BlockPos blockpos = pos.offset(face);
-    	BlockState blockstate = worldIn.getBlockState(blockpos);
-    	
-    	boolean nonNormalCubeAbove = !worldIn.getBlockState(pos.up()).isNormalCube(worldIn, pos);
-    	if (nonNormalCubeAbove) 
-    	{
-    		boolean flag = blockstate.isSolidSide(worldIn, blockpos, Direction.UP) || blockstate.isIn(Blocks.HOPPER);
-    		if (flag && canConnectTo(worldIn.getBlockState(blockpos.up()), worldIn, blockpos.up(), null)) 
-    		{
-    			if (blockstate.isSolidSide(worldIn, blockpos, face.getOpposite())) 
-    			{
-    				return BluestoneSide.UP;
-    			}
-
-    			return BluestoneSide.SIDE;
-    		}
-    	}
-
-    	return !canConnectTo(blockstate, worldIn, blockpos, face) && 
-    			(blockstate.isNormalCube(worldIn, blockpos) || !canConnectTo(worldIn.getBlockState(blockpos.down()), worldIn, blockpos.down(), null)) 
-    			? BluestoneSide.NONE : BluestoneSide.SIDE;
+    	return this.recalculateSide(worldIn, pos, face, !worldIn.getBlockState(pos.up()).isNormalCube(worldIn, pos));
     }
+    
+    private BluestoneSide recalculateSide(IBlockReader reader, BlockPos pos, Direction direction, boolean nonNormalCubeAbove) 
+    {
+    	BlockPos blockpos = pos.offset(direction);
+        BlockState blockstate = reader.getBlockState(blockpos);
+        if (nonNormalCubeAbove) 
+        {
+        	boolean flag = this.canPlaceOnTopOf(reader, blockpos, blockstate);
+        	if (flag && canConnectTo(reader.getBlockState(blockpos.up()), reader, blockpos.up(), null) ) 
+        	{
+        		if (blockstate.isSolidSide(reader, blockpos, direction.getOpposite())) 
+        		{
+        			return BluestoneSide.UP;
+        		}
 
+        		return BluestoneSide.SIDE;
+        	}
+        }
+
+        return !canConnectTo(blockstate, reader, blockpos, direction) && (blockstate.isNormalCube(reader, blockpos) || 
+        		!canConnectTo(reader.getBlockState(blockpos.down()), reader, blockpos.down(), null)) ? BluestoneSide.NONE : BluestoneSide.SIDE;
+    }
+    
     public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) 
     {
     	BlockPos blockpos = pos.down();
     	BlockState blockstate = worldIn.getBlockState(blockpos);
-    	return blockstate.isSolidSide(worldIn, blockpos, Direction.UP) || blockstate.getBlock() == Blocks.HOPPER;
+    	return this.canPlaceOnTopOf(worldIn, blockpos, blockstate);
     }
-
-    private BlockState updateSurroundingRedstone(World worldIn, BlockPos pos, BlockState state) 
+    
+    private boolean canPlaceOnTopOf(IBlockReader reader, BlockPos pos, BlockState state) 
     {
-    	//state = this.func_212568_b(worldIn, pos, state);
-    	List<BlockPos> list = Lists.newArrayList(this.blocksNeedingUpdate);
-    	this.blocksNeedingUpdate.clear();
-
-    	for(BlockPos blockpos : list) 
-    	{
-    		worldIn.notifyNeighborsOfStateChange(blockpos, this);
-    	}
-    	return state;
+        return state.isSolidSide(reader, pos, Direction.UP) || state.isIn(Blocks.HOPPER);
     }
-
-//   private BlockState setPowerLevel(World worldIn, BlockPos pos, BlockState state) {
-//      BlockState blockstate = state;
-//      int power = state.get(POWER);
-//      this.canProvidePower = false;
-//      int neighborpower = worldIn.getRedstonePowerFromNeighbors(pos);
-//      this.canProvidePower = true;
-//      int k = 0;
-//      if (neighborpower < 15) {
-//         for(Direction direction : Direction.Plane.HORIZONTAL) {
-//            BlockPos blockpos = pos.offset(direction);
-//            BlockState neighborblockstate = worldIn.getBlockState(blockpos);
-//            k = this.maxSignal(k, neighborblockstate);
-//            BlockPos blockpos_up = pos.up();
-//            if (neighborblockstate.isNormalCube(worldIn, blockpos) && !worldIn.getBlockState(blockpos_up).isNormalCube(worldIn, blockpos_up)) {
-//               k = this.maxSignal(k, worldIn.getBlockState(blockpos.up()));
-//            } else if (!neighborblockstate.isNormalCube(worldIn, blockpos)) {
-//               k = this.maxSignal(k, worldIn.getBlockState(blockpos.down()));
-//            }
-//         }
-//      }
-//
-//      int l = k - 1;
-//      if (neighborpower > l) {
-//         l = neighborpower;
-//      }
-//
-//      if (power != l) {
-//         state = state.with(POWER, Integer.valueOf(l));
-//         if (worldIn.getBlockState(pos) == blockstate) {
-//            worldIn.setBlockState(pos, state, 2);
-//         }
-//
-//         this.blocksNeedingUpdate.add(pos);
-//
-//         for(Direction direction1 : Direction.values()) {
-//            this.blocksNeedingUpdate.add(pos.offset(direction1));
-//         }
-//      }
-//
-//      return state;
-//   }
 
     /**
-     * Calls World.notifyNeighborsOfStateChange() for all neighboring blocks, but only if the given block is a redstone
+     * Calls World.notifyNeighborsOfStateChange() for all neighboring blocks, but only if the given block is a bluestone
      * wire.
      */
     private void notifyWireNeighborsOfStateChange(World worldIn, BlockPos pos)  	
     {
-    	if (worldIn.getBlockState(pos).getBlock() == this) 
+    	if (worldIn.getBlockState(pos).isIn(this)) 
     	{
     		worldIn.notifyNeighborsOfStateChange(pos, this);
 
@@ -300,69 +297,63 @@ public class BluestoneWireBlock extends Block
 
     public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) 
    	{
-    	if (oldState.getBlock() != state.getBlock() && !worldIn.isRemote) 
+    	if (!oldState.isIn(state.getBlock()) && !worldIn.isRemote) 
     	{
-    		this.updateSurroundingRedstone(worldIn, pos, state);
-
     		for(Direction direction : Direction.Plane.VERTICAL) 
     		{
     			worldIn.notifyNeighborsOfStateChange(pos.offset(direction), this);
     		}
-
-    		for(Direction direction1 : Direction.Plane.HORIZONTAL) 
-    		{
-    			this.notifyWireNeighborsOfStateChange(worldIn, pos.offset(direction1));
-    		}
-
-    		for(Direction direction2 : Direction.Plane.HORIZONTAL) 
-    		{
-    			BlockPos blockpos = pos.offset(direction2);
-    			if (worldIn.getBlockState(blockpos).isNormalCube(worldIn, blockpos)) 
-    			{
-    				this.notifyWireNeighborsOfStateChange(worldIn, blockpos.up());
-    			} else {
-    				this.notifyWireNeighborsOfStateChange(worldIn, blockpos.down());
-    			}
-    		}
     	}
    	}
+    
+    @SuppressWarnings("deprecation")
+	@Override
+    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+    	if (!isMoving && !state.isIn(newState.getBlock())) 
+    	{
+    		super.onReplaced(state, worldIn, pos, newState, isMoving);
+    		if (!worldIn.isRemote) 
+    		{
+    			for(Direction direction : Direction.values()) 
+    			{
+    				worldIn.notifyNeighborsOfStateChange(pos.offset(direction), this);
+    			}
 
-//   public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-//      if (!isMoving && state.getBlock() != newState.getBlock()) {
-//         if (!worldIn.isRemote) {
-//            for(Direction direction : Direction.values()) {
-//               worldIn.notifyNeighborsOfStateChange(pos.offset(direction), this);
-//            }
-//
-//            for(Direction direction1 : Direction.Plane.HORIZONTAL) {
-//               this.notifyWireNeighborsOfStateChange(worldIn, pos.offset(direction1));
-//            }
-//
-//            for(Direction direction2 : Direction.Plane.HORIZONTAL) {
-//               BlockPos blockpos = pos.offset(direction2);
-//               if (worldIn.getBlockState(blockpos).isNormalCube(worldIn, blockpos)) {
-//                  this.notifyWireNeighborsOfStateChange(worldIn, blockpos.up());
-//               } else {
-//                  this.notifyWireNeighborsOfStateChange(worldIn, blockpos.down());
-//               }
-//            }
-//         }
-//      }
-//   }
+    			this.updateNeighborsStateChange(worldIn, pos);
+    		}
+    	}
+    }
+    
+    private void updateNeighborsStateChange(World worldIn, BlockPos pos)
+    {
+    	for(Direction direction1 : Direction.Plane.HORIZONTAL) 
+		{
+			this.notifyWireNeighborsOfStateChange(worldIn, pos.offset(direction1));
+		}
 
-//    public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) 
-//    {
-//    	if (!worldIn.isRemote) {
-//    		if (state.isValidPosition(worldIn, pos)) 
-//    		{
-//    			this.updateSurroundingRedstone(worldIn, pos, state);
-//    		} else {
-//    			spawnDrops(state, worldIn, pos);
-//            worldIn.removeBlock(pos, false);
-//    		}
-//
-//    	}
-//    }
+		for(Direction direction2 : Direction.Plane.HORIZONTAL) 
+		{
+			BlockPos blockpos = pos.offset(direction2);
+			if (worldIn.getBlockState(blockpos).isNormalCube(worldIn, blockpos)) 
+			{
+				this.notifyWireNeighborsOfStateChange(worldIn, blockpos.up());
+			} else {
+				this.notifyWireNeighborsOfStateChange(worldIn, blockpos.down());
+			}
+		}
+    }
+
+    public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) 
+    {
+    	if (!worldIn.isRemote) 
+    	{
+    		if (!state.isValidPosition(worldIn, pos))
+    		{
+    			spawnDrops(state, worldIn, pos);
+            	worldIn.removeBlock(pos, false);
+    		}
+    	}
+    }
 
    	protected static boolean canConnectTo(BlockState blockState, IBlockReader world, BlockPos pos, @Nullable Direction side) 
    	{
@@ -379,53 +370,6 @@ public class BluestoneWireBlock extends Block
 	   		return false;
 	   	}
    	}
-
-   	@OnlyIn(Dist.CLIENT)
-   	public static int colorMultiplier(int p_176337_0_) 
-   	{
-   		float f = (float)p_176337_0_ / 15.0F;
-   		float f1 = f * 0.6F + 0.4F;
-   		if (p_176337_0_ == 0) 
-   		{
-   			f1 = 0.3F;
-   		}
-   		
-   		float f2 = f * f * 0.7F - 0.5F;
-   		float f3 = f * f * 0.6F - 0.7F;
-   		if (f2 < 0.0F) 
-   		{
-   			f2 = 0.0F;
-   		}
-   		
-   		if (f3 < 0.0F) {
-   			f3 = 0.0F;
-   		}
-
-   		int i = MathHelper.clamp((int)(f1 * 255.0F), 0, 255);
-   		int j = MathHelper.clamp((int)(f2 * 255.0F), 0, 255);
-   		int k = MathHelper.clamp((int)(f3 * 255.0F), 0, 255);
-   		return -16777216 | i << 16 | j << 8 | k;
-   	}
-
-   	/**
-   	 * Called periodically clientside on blocks near the player to show effects (like furnace fire particles). Note that
-   	 * this method is unrelated to {@link randomTick} and {@link #needsRandomTick}, and will always be called regardless
-   	 * of whether the block can receive random update ticks
-   	 */
-//   @OnlyIn(Dist.CLIENT)
-//   public void animateTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-//      int i = stateIn.get(POWER);
-//      if (i != 0) {
-//         double d0 = (double)pos.getX() + 0.5D + ((double)rand.nextFloat() - 0.5D) * 0.2D;
-//         double d1 = (double)((float)pos.getY() + 0.0625F);
-//         double d2 = (double)pos.getZ() + 0.5D + ((double)rand.nextFloat() - 0.5D) * 0.2D;
-//         float f = (float)i / 15.0F;
-//         float f1 = f * 0.6F + 0.4F;
-//         float f2 = Math.max(0.0F, f * f * 0.7F - 0.5F);
-//         float f3 = Math.max(0.0F, f * f * 0.6F - 0.7F);
-//         worldIn.addParticle(new RedstoneParticleData(f1, f2, f3, 1.0F), d0, d1, d2, 0.0D, 0.0D, 0.0D);
-//      }
-//   }
 
    	/**
     * Returns the blockstate with the given rotation from the passed blockstate. If inapplicable, returns the passed
@@ -472,18 +416,6 @@ public class BluestoneWireBlock extends Block
    	}
    	
    	@Override
-   	public boolean hasTileEntity(BlockState state) 
-   	{
-   		return true;
-   	}
-   	
-   	@Override
-   	public TileEntity createTileEntity(BlockState state, IBlockReader world) 
-   	{
-   		return IMPSTileEntities.BLUESTONE_WIRE.get().create();
-   	}
-   	
-   	@Override
    	public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player,
    			Hand handIn, BlockRayTraceResult hit) 
    	{
@@ -494,7 +426,7 @@ public class BluestoneWireBlock extends Block
    	   			TileEntity te = worldIn.getTileEntity(pos);
    	   			if (te instanceof BluestoneWireTileEntity)
    	   			{
-   	   				ArrayList<WireItem> items = ((BluestoneWireTileEntity) te).items;
+   	   				List<PipeItem> items = ((BluestoneWireTileEntity) te).items;
    	   				if (!items.isEmpty())
    	   				{
    		   				((BluestoneWireTileEntity) te).items.forEach((wire) -> {
@@ -510,6 +442,47 @@ public class BluestoneWireBlock extends Block
    	   			}
    	   		}
    		}
-   		return ActionResultType.SUCCESS;
+   		
+   		if (!player.abilities.allowEdit)
+   		{
+   			return ActionResultType.PASS;
+   		}
+   		else
+   		{
+   			if (areAllSidesValid(state) || areAllSidesInvalid(state))
+   	   		{
+   	   			BlockState blockstate = areAllSidesValid(state) ? this.getDefaultState() : this.sideBaseState;
+   	            if (blockstate != state) {
+   	               worldIn.setBlockState(pos, blockstate, 3);
+   	               this.updateChangedConnections(worldIn, pos, state, blockstate);
+   	               return ActionResultType.SUCCESS;
+   	            }
+   	   		}
+   	   		
+   	   		return ActionResultType.PASS;
+   		}
+   	}
+   	
+   	private void updateChangedConnections(World world, BlockPos pos, BlockState prevState, BlockState newState) {
+        for(Direction direction : Direction.Plane.HORIZONTAL) 
+        {
+           BlockPos blockpos = pos.offset(direction);
+           if (prevState.get(FACING_PROPERTY_MAP.get(direction)).isValid() != newState.get(FACING_PROPERTY_MAP.get(direction)).isValid() && 
+        		   world.getBlockState(blockpos).isNormalCube(world, blockpos)) {
+              world.notifyNeighborsOfStateExcept(blockpos, newState.getBlock(), direction.getOpposite());
+           }
+        }
+     }
+   	
+   	@Override
+   	public boolean hasTileEntity(BlockState state) 
+   	{
+   		return true;
+   	}
+   	
+   	@Override
+   	public TileEntity createTileEntity(BlockState state, IBlockReader world) 
+   	{
+   		return IMPSTileEntities.BLUESTONE_WIRE.get().create();
    	}
 }

@@ -25,5 +25,10 @@ public enum BluestoneSide implements IStringSerializable
 	{
 		return this.name;
 	}
+	
+	public boolean isValid()
+	{
+		return this != NONE;
+	}
 
 }

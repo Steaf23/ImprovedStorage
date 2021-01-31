@@ -129,16 +129,18 @@ public class StoneChestBlock extends Block implements IWaterLoggable
 		return ActionResultType.SUCCESS;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) 
 	{
-		if (state.getBlock() != newState.getBlock())
+		if (!state.isIn(newState.getBlock()))
 		{
 			TileEntity te = worldIn.getTileEntity(pos);
 			if (te instanceof StoneChestTileEntity)
 			{
 				InventoryHelper.dropItems(worldIn, pos, ((StoneChestTileEntity)te).getItems());
 			}
+			super.onReplaced(state, worldIn, pos, newState, isMoving);
 		}
 	}
 	

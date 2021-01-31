@@ -11,8 +11,8 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
 import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity;
-import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity.WireItem;
 
 @OnlyIn(Dist.CLIENT)
 public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileEntity>
@@ -26,9 +26,9 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 	public void render(BluestoneWireTileEntity tileEntityIn, float partialTicks, MatrixStack matrixStackIn,
 			IRenderTypeBuffer bufferIn, int combinedLightIn, int combinedOverlayIn) 
 	{
-		for (Object wireItem : tileEntityIn.items) 
+		for (PipeItem pipeItem : tileEntityIn.items) 
 		{
-			ItemStack stack = ((WireItem)wireItem).getItemStack();
+			ItemStack stack = pipeItem.getItemStack();
 			if (!stack.isEmpty()) {
 				matrixStackIn.push();
 				matrixStackIn.translate(0.5D, 1.5D, 0.5D);
