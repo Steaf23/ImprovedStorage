@@ -426,14 +426,20 @@ public class BluestoneWireBlock extends Block
    	{
    		if (!worldIn.isRemote)
    		{
-   			if (player.getHeldItem(handIn) != ItemStack.EMPTY)
-   	   		{
-   	   			TileEntity te = worldIn.getTileEntity(pos);
-   	   			if (te instanceof BluestoneWireTileEntity)
-   	   			{
-   	   				//TODO Add method call to put items in from hand
+   			TileEntity te = worldIn.getTileEntity(pos);
+	   		if (te instanceof BluestoneWireTileEntity)
+	   		{
+	   			BluestoneWireTileEntity wireTE = (BluestoneWireTileEntity)te;
+	   			if (player.getHeldItem(handIn) == ItemStack.EMPTY)
+	   			{
+	   				wireTE.setRenderDebug(!wireTE.getRenderDebug());
    	   			}
-   	   		}
+	   			else
+	   			{
+	   				//TODO Add method call to put items in from hand
+	   			}
+	   		}
+   			
    		}
    		
    		if (!player.abilities.allowEdit)

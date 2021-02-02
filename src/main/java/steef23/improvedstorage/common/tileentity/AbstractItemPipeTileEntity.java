@@ -71,7 +71,6 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 					switch (this.getConnectionType(target))
 					{
 						case PIPE:
-						case TABLE:
 						case INVENTORY:
 							if (this.sendItem(item, target))
 							{

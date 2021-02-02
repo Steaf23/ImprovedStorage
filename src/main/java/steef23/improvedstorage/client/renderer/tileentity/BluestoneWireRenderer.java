@@ -11,11 +11,14 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
 import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity;
+import steef23.improvedstorage.core.init.IMPSItems;
 
 @OnlyIn(Dist.CLIENT)
 public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileEntity>
@@ -26,16 +29,20 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 	}
 
 	@Override
-	public void render(BluestoneWireTileEntity tileEntityIn, float partialTicks, MatrixStack matrixStackIn,
+	public void render(BluestoneWireTileEntity wireTE, float partialTicks, MatrixStack matrixStackIn,
 			IRenderTypeBuffer bufferIn, int combinedLightIn, int combinedOverlayIn) 
 	{
-		ArrayList<PipeItem> items = tileEntityIn.items;
+		ArrayList<PipeItem> items = wireTE.items;
 		for (int i = 0; i < items.size(); i++) 
 		{
 			ItemStack stack = items.get(i).getItemStack();
 			if (!stack.isEmpty()) 
 			{
 				matrixStackIn.push();
+				if (wireTE.getRenderDebug())
+				{
+					renderDebugOverlay(wireTE, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
+				}
 				Vector3d vec = new Vector3d((double)i / items.size(), 0.5D, (double)i / items.size());
 				matrixStackIn.translate(vec.getX(), vec.getY(), vec.getZ());
 				renderItem(stack, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
@@ -48,5 +55,35 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 			IRenderTypeBuffer bufferIn, int combinedLightIn)
 	{
 		Minecraft.getInstance().getItemRenderer().renderItem(stack, TransformType.FIXED, combinedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn);
+	}
+	
+	private void renderDebugOverlay(BluestoneWireTileEntity wireTE, float PartialTicks, MatrixStack matrixStackIn, 
+			IRenderTypeBuffer bufferIn, int combinedLightIn)
+	{
+		matrixStackIn.push();
+		matrixStackIn.translate(0.0D, 0.0D, 0.0D);
+		for (Direction d: Direction.values())
+		{
+			ItemStack stack; 
+			switch (wireTE.getConnectionType(d))
+			{
+				case NONE:
+					stack = new ItemStack(Items.BEDROCK);
+				case END:
+					stack = new ItemStack(IMPSItems.BLUESTONE_INGOT.get());
+				case INVENTORY:
+					stack = new ItemStack(Items.CHEST);
+				case PIPE:
+					stack = new ItemStack(Items.BLUE_WOOL);
+				default:
+					stack = new ItemStack(Items.ACACIA_BOAT);
+					break;
+			}
+			matrixStackIn.push();
+			matrixStackIn.translate(d.toVector3f().getX() + .5D, d.toVector3f().getY() + .5D, d.toVector3f().getZ() + .5D);
+			this.renderItem(stack, PartialTicks, matrixStackIn, bufferIn, combinedLightIn);
+			matrixStackIn.pop();
+		}
+		matrixStackIn.pop();
 	}
 }

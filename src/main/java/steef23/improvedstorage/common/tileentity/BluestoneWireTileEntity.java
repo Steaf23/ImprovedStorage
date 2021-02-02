@@ -8,7 +8,7 @@ import steef23.improvedstorage.core.init.IMPSTileEntities;
 
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 {
-	public static boolean RENDER_DEBUG = false;
+	private boolean renderDebug = false;
 	
 	protected BluestoneWireTileEntity(TileEntityType<?> typeIn) 
 	{
@@ -32,10 +32,6 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 				{
 					return PipeConnectionType.PIPE;
 				}
-				else if (te instanceof BluestoneTableTileEntity)
-				{
-					return PipeConnectionType.TABLE;
-				}
 				else if (te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, face.getOpposite()).isPresent())
 				{
 					return PipeConnectionType.INVENTORY;
@@ -56,6 +52,20 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 	protected boolean doEndsBounceBack()
 	{
 		return false;
+	}
+	
+	public void setRenderDebug(boolean value)
+	{
+		if (!world.isRemote)
+		{
+			this.renderDebug = value;
+			this.markDirty();
+		}
+	}
+	
+	public boolean getRenderDebug()
+	{
+		return this.renderDebug;
 	}
 }
 
