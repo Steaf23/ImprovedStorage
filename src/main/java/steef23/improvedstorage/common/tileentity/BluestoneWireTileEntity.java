@@ -1,17 +1,15 @@
 package steef23.improvedstorage.common.tileentity;
 
-import net.minecraft.state.EnumProperty;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
-import steef23.improvedstorage.common.block.BluestoneSide;
-import steef23.improvedstorage.common.block.BluestoneWireBlock;
+import net.minecraftforge.items.CapabilityItemHandler;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
-
-//TODO ADD METHOD FOR PLAYER INSERTION USING HAND
-//TODO ADD METHOD TO SPIT OUT ITEMS AT THE END IF NO INVENTORY
 
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 {
+	public static boolean RENDER_DEBUG = false;
+	
 	protected BluestoneWireTileEntity(TileEntityType<?> typeIn) 
 	{
 		super(typeIn, 20);
@@ -23,19 +21,41 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 	}
 	
 	@Override
-	protected boolean shouldFaceConnect(Direction face)
+	protected PipeConnectionType setConnectionType(Direction face)
 	{
-		EnumProperty<BluestoneSide> property = BluestoneWireBlock.FACING_PROPERTY_MAP.get(face);
-		if (property == null)
-		{
-			return false;
+		if (face != Direction.DOWN || face != Direction.UP)
+		{	
+			TileEntity te = this.world.getTileEntity(this.pos.offset(face));
+			if (te != null)
+			{
+				if (te instanceof BluestoneWireTileEntity)
+				{
+					return PipeConnectionType.PIPE;
+				}
+				else if (te instanceof BluestoneTableTileEntity)
+				{
+					return PipeConnectionType.TABLE;
+				}
+				else if (te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, face.getOpposite()).isPresent())
+				{
+					return PipeConnectionType.INVENTORY;
+				}
+			}
+			else
+			{
+				if (this.world.getTileEntity(this.pos.offset(face.getOpposite())) instanceof BluestoneWireTileEntity)
+				{
+					return PipeConnectionType.END;
+				}
+			}
 		}
-		else
-		{
-			BluestoneSide side = this.getBlockState().get(property);
-			
-			return (side != BluestoneSide.NONE);
-		}
+		return PipeConnectionType.NONE;
+	}
+
+	@Override
+	protected boolean doEndsBounceBack()
+	{
+		return false;
 	}
 }
 

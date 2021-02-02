@@ -10,6 +10,7 @@ import steef23.improvedstorage.common.entity.StoneGolemEntity;
 public class StoneGolemRenderer extends MobRenderer<StoneGolemEntity, StoneGolemModel<StoneGolemEntity>>
 {
 	protected static final ResourceLocation TEXTURE = new ResourceLocation(ImprovedStorage.MOD_ID, "textures/entity/stone_golem_entity.png");
+	
 	public StoneGolemRenderer(EntityRendererManager renderManagerIn)
 	{
 		super(renderManagerIn, new StoneGolemModel<StoneGolemEntity>(), 0.5f);

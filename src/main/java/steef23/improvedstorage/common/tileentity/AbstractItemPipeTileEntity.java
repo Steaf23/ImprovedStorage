@@ -26,36 +26,39 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public final int speed;
 	public int cooldownTimer;
 	public ArrayList<PipeItem> items;
-	private boolean[] availableFaces;
-	private boolean hasChanged;
+	private PipeConnectionType[] faceConnections;
+	private boolean needsUpdate;
 	
 	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn, int speed)
 	{
 		super(tileEntityTypeIn);
 		this.speed = speed;
 		this.items = new ArrayList<>();
-		this.availableFaces = new boolean[6];
-		this.hasChanged = false;
+		this.faceConnections = new PipeConnectionType[6];
+		this.needsUpdate = false;
 	}
 	
-	private void updateConnectedFaces()
+	private void updateFaceConnections()
 	{
-		for (int index = 0; index < this.availableFaces.length; index++)
+		for (int index = 0; index < this.faceConnections.length; index++)
 		{
 			Direction dir = Direction.byIndex(index);
-			this.availableFaces[index] = this.shouldFaceConnect(dir);
+			this.faceConnections[index] = this.setConnectionType(dir);
 		}
 	}
 	
 	// should be implemented to define when the face should be connected
-	protected abstract boolean shouldFaceConnect(Direction face);
+	protected abstract PipeConnectionType setConnectionType(Direction face);
+	
+	// should be implemented to define if the ends of a pipe should bounce back items or spit them out
+	protected abstract boolean doEndsBounceBack();
 	
 	@Override
 	public void tick()
 	{
 		if (!world.isRemote)
 		{
-			this.updateConnectedFaces();
+			this.updateFaceConnections();
 			
 			//INSERT INTO OTHER INVENTORIES
 			Iterator<PipeItem> itr = this.items.iterator();
@@ -64,10 +67,24 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 				PipeItem item = itr.next();
 				if (item.getTicksInPipe() > this.speed)
 				{
-					if (this.sendItem(item, item.getTarget()))
+					Direction target = item.getTarget();
+					switch (this.getConnectionType(target))
 					{
-						itr.remove();
-						this.hasChanged = true;
+						case PIPE:
+						case TABLE:
+						case INVENTORY:
+							if (this.sendItem(item, target))
+							{
+								itr.remove();
+								this.needsUpdate = true;
+							}
+						case END:
+							// TODO spit out item
+							break;
+						case NONE:
+							break;
+						default:
+							break;
 					}
 				}	
 			}
@@ -78,16 +95,16 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 				this.cooldownTimer = 0;
 				for (Direction face : Direction.values())
 				{
-					if (this.isfaceConnected(face))
+					if (this.getConnectionType(face) == PipeConnectionType.INVENTORY)
 					{
 						//if items have been sent out OR came in
-						this.hasChanged |= this.pullFromInventory(face);
+						this.needsUpdate |= this.pullFromInventory(face);
 					}
 				}
 			}
-			if (hasChanged)
+			if (needsUpdate)
 			{
-				hasChanged = false;
+				needsUpdate = false;
 				this.markDirty();
 			}
 		}
@@ -95,47 +112,45 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	
 	public boolean sendItem(PipeItem item, Direction outgoingFace)
 	{
-		if (this.isfaceConnected(outgoingFace))
+		TileEntity te = this.getWorld().getTileEntity(this.pos.offset(outgoingFace));
+		if (!(te instanceof AbstractItemPipeTileEntity))
 		{
-			TileEntity te = this.getWorld().getTileEntity(this.pos.offset(outgoingFace));
-			if (!(te instanceof AbstractItemPipeTileEntity))
-			{
-				return VanillaInventoryCodeHooks.getItemHandler(this.world, 
-																te.getPos().getX(), 
-																te.getPos().getY(), 
-																te.getPos().getZ(), 
-																outgoingFace.getOpposite())
-						.map(destinationResult ->
+			return VanillaInventoryCodeHooks.getItemHandler(this.world, 
+															te.getPos().getX(), 
+															te.getPos().getY(), 
+															te.getPos().getZ(), 
+															outgoingFace.getOpposite())
+					.map(destinationResult ->
+					{
+						IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
+						if (isInventoryFull(itemHandler))
 						{
-							IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
-							if (isInventoryFull(itemHandler))
+							return false;
+						}
+						else
+						{
+							if (item.isValid())
 							{
-								return false;
+								ItemStack insertStack = item.getItemStack().copy();
+	                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
+	                            if (remainder.isEmpty())
+	                            {
+	                                return true;
+	                            }
+	                            item.stack = remainder;
+	                            //set source to outgoing, meaning it will bounce back
+	                            item.source = outgoingFace;
+	                            item.ticksInPipe = 0;
 							}
-							else
-							{
-								if (item.isValid())
-								{
-									ItemStack insertStack = item.getItemStack().copy();
-		                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
-		                            if (remainder.isEmpty())
-		                            {
-		                                return true;
-		                            }
-		                            item.stack = remainder;
-		                            //set source to outgoing, meaning it will bounce back
-		                            item.source = outgoingFace;
-		                            item.ticksInPipe = 0;
-								}
-								return false;
-							}
-						})
-						.orElse(false);
-			}
-			else if (te instanceof AbstractItemPipeTileEntity)
-			{
-				((AbstractItemPipeTileEntity)te).receiveItem(item, outgoingFace);
-			}
+							return false;
+						}
+					})
+					.orElse(false);
+		}
+		else if (te instanceof AbstractItemPipeTileEntity)
+		{
+			((AbstractItemPipeTileEntity)te).receiveItem(item);
+			return true;
 		}
 		return false;
 	}
@@ -161,7 +176,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 							{
 								extractItem = handler.extractItem(index, handler.getStackInSlot(index).getCount(), false);
 								PipeItem item = new PipeItem(extractItem, incomingFace);
-								this.receiveItem(item, incomingFace);
+								this.receiveItem(item);
 								this.markDirty();
 								return true;
 							}
@@ -173,26 +188,57 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		return false;
 	}
 
-	public boolean receiveItem(PipeItem item, Direction source)
+	public void receiveItem(PipeItem item)
 	{
-		item.target = calculateTargetFace(source);
-		this.items.add(item);
-		return true;
+		item.target = setTargetFace(item.source);
+		if (item.target != null)
+		{
+			this.items.add(item);
+		}
 	}
 
-	//TODO ADD TARGET FACE CALCULATION
-	public Direction calculateTargetFace(Direction source)
+	// Direction priority for target selection (highest to lowest): Clockwise from source in order D-(S-W-N-E)-U
+	public Direction setTargetFace(Direction source)
 	{
-		return source.getOpposite();
+		if (this.getConnectionType(Direction.DOWN) != PipeConnectionType.NONE && source != Direction.DOWN)
+		{
+			return Direction.DOWN;
+		}
+		
+		Direction horizontalIndex = this.setTargetFaceHorizontal(source);
+		
+		if (horizontalIndex != null)
+		{
+			return horizontalIndex;
+		}
+		
+		if (this.getConnectionType(Direction.UP) != PipeConnectionType.NONE && source != Direction.UP)
+		{
+			return Direction.UP;
+		}
+		
+		return source;
 	}
 	
-	public boolean isfaceConnected(Direction face)
+	public Direction setTargetFaceHorizontal(Direction source)
 	{
-		if(face != null)
+		//if source is null, start as SOUTH
+		Direction dir = source == null ? Direction.SOUTH : source;
+		
+		for (int i = 0; i < 4; i++)
 		{
-			return this.availableFaces[face.getIndex()];
+			dir = Direction.byHorizontalIndex(dir.getHorizontalIndex() + 1);
+			if (this.getConnectionType(dir) != PipeConnectionType.NONE && dir != source)
+			{
+				return dir;
+			}
 		}
-		return false;
+		return null;
+	}
+	
+	public PipeConnectionType getConnectionType(Direction face)
+	{
+		return face == null ? PipeConnectionType.NONE : this.faceConnections[face.getIndex()];
 	}
 	
 	public void dropInventory()
@@ -368,45 +414,50 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	 * ---------------------------------------------
 	 */
 	
-    //TODO ALLOW SOURCE TO BE NULL
 	public static class PipeItem
 	{
 		private ItemStack stack;
     	private int ticksInPipe;
-    	private Direction source;
     	private Direction target;
+    	private Direction source;
+    	private boolean hasSource;
     	
-    	protected PipeItem(ItemStack stack, Direction source)
+    	protected PipeItem(ItemStack stack, @Nullable Direction source)
     	{
     		this.ticksInPipe = 0;
     		this.stack = stack;
     		this.source = source;
+    		this.hasSource = source == null;
     	}
     	
     	protected void tick()
     	{
-    		this.ticksInPipe++;
+    		ticksInPipe++;
     	}
     	
     	public boolean isValid()
     	{
-    		return this.getItemStack().isEmpty();
+    		return getItemStack().isEmpty();
     	}
     	
     	public CompoundNBT write(CompoundNBT compound)
     	{
-    		this.getItemStack().write(compound);
-    		compound.putByte("Ticks", (byte)this.getTicksInPipe());
-    		compound.putByte("Source", (byte)this.getSource().getIndex());
-    		compound.putByte("Target", (byte)this.getTarget().getIndex());
+    		getItemStack().write(compound);
+    		compound.putByte("Ticks", (byte)getTicksInPipe());
+    		compound.putByte("Target", (byte)target.getIndex());
+    		compound.putBoolean("hasSource", hasSource);
+    		if (hasSource)
+    		{
+    			compound.putByte("Source", (byte)source.getIndex());
+    		}
     		return compound;
     	}
     	
     	public static PipeItem read(CompoundNBT compound)
     	{
     		ItemStack item = ItemStack.read(compound);
-    		Direction source = Direction.byIndex(compound.getByte("Source"));
     		Direction target = Direction.byIndex(compound.getByte("Target"));
+    		Direction source = compound.getBoolean("hasSource") ? Direction.byIndex(compound.getByte("Source")) : null;
     		int ticksInPipe = compound.getByte("Ticks");
     		
     		PipeItem pipeItem = new PipeItem(item, source);
@@ -417,23 +468,23 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	
     	public ItemStack getItemStack()
     	{
-    		return this.stack;
+    		return stack;
     	}
     	
     	public int getTicksInPipe()
     	{
-    		return this.ticksInPipe;
-    	}
-    	
-    	public Direction getSource()
-    	{
-    		return this.source;
+    		return ticksInPipe;
     	}
     	
     	public Direction getTarget()
     	{
-    		return this.target;
+    		return target;
     	}
+    	
+    	public Direction getSource()
+		{
+			return source;
+		}
     	
     	public PipeItem getWithTarget(Direction target)
     	{

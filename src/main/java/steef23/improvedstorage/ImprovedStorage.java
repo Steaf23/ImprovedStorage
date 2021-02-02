@@ -17,7 +17,7 @@ import steef23.improvedstorage.core.init.IMPSItems;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
 
 // The value here should match an entry in the META-INF/mods.toml file
-@Mod("improvedstorage")
+@Mod(ImprovedStorage.MOD_ID)
 public class ImprovedStorage
 {
     public static final Logger LOGGER = LogManager.getLogger();

@@ -360,7 +360,7 @@ public class BluestoneWireBlock extends Block
     	}
     }
 
-   	protected static boolean canConnectTo(BlockState blockState, IBlockReader world, BlockPos pos, @Nullable Direction side) 
+   	public static boolean canConnectTo(BlockState blockState, IBlockReader world, BlockPos pos, @Nullable Direction side) 
    	{
 	   	Block block = blockState.getBlock();
 	   	if (block == IMPSBlocks.BLUESTONE_WIRE.get()) 
