@@ -433,6 +433,7 @@ public class BluestoneWireBlock extends Block
 	   			if (player.getHeldItem(handIn) == ItemStack.EMPTY)
 	   			{
 	   				wireTE.setRenderDebug(!wireTE.getRenderDebug());
+	   				System.out.format("Render debug enabled: %b\n", wireTE.getRenderDebug());
    	   			}
 	   			else
 	   			{

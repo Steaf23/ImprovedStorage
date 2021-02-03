@@ -252,12 +252,23 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public CompoundNBT write(CompoundNBT nbt)
 	{
 		super.write(nbt);
+		ListNBT items = new ListNBT();
+		this.items.forEach(item -> items.add(item.write(new CompoundNBT())));
 		
-		ListNBT listnbt = new ListNBT();
-		this.items.forEach((item) -> listnbt.add(item.write(new CompoundNBT())));
+		ListNBT faceConnections = new ListNBT();
+		if (this.faceConnections != null)
+		{
+			for (PipeConnectionType connection : this.faceConnections)
+			{
+				CompoundNBT typeNBT = new CompoundNBT();
+				typeNBT.putByte("Type", (byte)connection.getIndex());
+				faceConnections.add(typeNBT);
+			}
+		}
 		
-		nbt.put("Items", listnbt);
 		
+		nbt.put("Items", items);
+		nbt.put("Connections", faceConnections);
 		return nbt;
 	}
 	
@@ -268,6 +279,11 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		ArrayList<PipeItem> items = new ArrayList<>();
 		ListNBT listNBT = nbt.getList("Items", 10);
 		listNBT.forEach((item)-> items.add(PipeItem.read((CompoundNBT)item)));
+		ListNBT faceConnections = nbt.getList("Connections", 10);
+		for (int i = 0; i < faceConnections.size(); i++)
+		{
+			this.faceConnections[i] = PipeConnectionType.byIndex(((CompoundNBT)faceConnections.get(i)).getByte("Type"));
+		}
 		this.items = items;
 	}
 	
@@ -426,7 +442,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     		this.ticksInPipe = 0;
     		this.stack = stack;
     		this.source = source;
-    		this.hasSource = source == null;
+    		this.hasSource = source != null;
     	}
     	
     	protected void tick()

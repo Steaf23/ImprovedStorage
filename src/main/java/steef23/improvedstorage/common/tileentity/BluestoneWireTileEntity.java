@@ -1,5 +1,7 @@
 package steef23.improvedstorage.common.tileentity;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
@@ -66,6 +68,21 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 	public boolean getRenderDebug()
 	{
 		return this.renderDebug;
+	}
+	
+	@Override
+	public CompoundNBT write(CompoundNBT nbt)
+	{
+		super.write(nbt);
+		nbt.putBoolean("Debug", this.renderDebug);
+		return nbt;
+	}
+	
+	@Override
+	public void read(BlockState state, CompoundNBT nbt)
+	{
+		super.read(state, nbt);
+		this.renderDebug = nbt.getBoolean("Debug");
 	}
 }
 
