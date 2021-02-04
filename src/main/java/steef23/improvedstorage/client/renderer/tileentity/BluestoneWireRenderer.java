@@ -65,7 +65,7 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 			IRenderTypeBuffer bufferIn, int combinedLightIn)
 	{
 		matrixStackIn.push();
-		matrixStackIn.translate(0.0D, 0.0D, 0.0D);
+		matrixStackIn.translate(0.5D, 0.0D, 0.5D);
 		for (Direction d: Direction.values())
 		{
 			ItemStack stack; 
@@ -88,7 +88,7 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 					break;
 			}
 			matrixStackIn.push();
-			matrixStackIn.translate(d.toVector3f().getX() + .5D, d.toVector3f().getY(), d.toVector3f().getZ() + .5D);
+			matrixStackIn.translate(d.toVector3f().getX() / 2, d.toVector3f().getY(), d.toVector3f().getZ() / 2);
 			matrixStackIn.scale(.5f, .5f, .5f);
 			this.renderItem(stack, PartialTicks, matrixStackIn, bufferIn, combinedLightIn);
 			matrixStackIn.pop();

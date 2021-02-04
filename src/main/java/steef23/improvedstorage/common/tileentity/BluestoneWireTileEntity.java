@@ -6,6 +6,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraftforge.items.CapabilityItemHandler;
+import steef23.improvedstorage.common.block.BluestoneSide;
+import steef23.improvedstorage.common.block.BluestoneWireBlock;
 import steef23.improvedstorage.core.init.IMPSTileEntities;
 
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
@@ -41,7 +43,7 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 			}
 			else
 			{
-				if (this.world.getTileEntity(this.pos.offset(face.getOpposite())) instanceof BluestoneWireTileEntity)
+				if (this.getBlockState().get(BluestoneWireBlock.FACING_PROPERTY_MAP.get(face)) !=  BluestoneSide.NONE)
 				{
 					return PipeConnectionType.END;
 				}

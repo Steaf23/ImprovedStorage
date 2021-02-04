@@ -445,7 +445,7 @@ public class BluestoneWireBlock extends Block
    		
    		if (!player.abilities.allowEdit)
    		{
-   			return ActionResultType.PASS;
+   			return ActionResultType.SUCCESS;
    		}
    		else
    		{
@@ -459,7 +459,7 @@ public class BluestoneWireBlock extends Block
    	            }
    	   		}
    	   		
-   	   		return ActionResultType.PASS;
+   	   		return ActionResultType.SUCCESS;
    		}
    	}
    	

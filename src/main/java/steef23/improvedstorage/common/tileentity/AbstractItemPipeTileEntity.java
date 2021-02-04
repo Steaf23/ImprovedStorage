@@ -26,7 +26,12 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public final int speed;
 	public int cooldownTimer;
 	public ArrayList<PipeItem> items;
-	private PipeConnectionType[] faceConnections;
+	private PipeConnectionType[] faceConnections = {PipeConnectionType.NONE,
+													PipeConnectionType.NONE,
+													PipeConnectionType.NONE,
+													PipeConnectionType.NONE,
+													PipeConnectionType.NONE,
+													PipeConnectionType.NONE};
 	private boolean needsUpdate;
 	
 	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn, int speed)
@@ -34,7 +39,6 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		super(tileEntityTypeIn);
 		this.speed = speed;
 		this.items = new ArrayList<>();
-		this.faceConnections = new PipeConnectionType[6];
 		this.needsUpdate = false;
 	}
 	
@@ -45,6 +49,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 			Direction dir = Direction.byIndex(index);
 			this.faceConnections[index] = this.setConnectionType(dir);
 		}
+		this.markDirty();
 	}
 	
 	// should be implemented to define when the face should be connected
