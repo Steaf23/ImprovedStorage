@@ -238,7 +238,7 @@ public class BluestoneWireBlock extends Block
     	}
     }
     
-    private BluestoneSide getSide(IBlockReader worldIn, BlockPos pos, Direction face) 
+    public BluestoneSide getSide(IBlockReader worldIn, BlockPos pos, Direction face) 
     {
     	return this.recalculateSide(worldIn, pos, face, !worldIn.getBlockState(pos.up()).isNormalCube(worldIn, pos));
     }

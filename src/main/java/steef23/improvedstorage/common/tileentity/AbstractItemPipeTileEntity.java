@@ -26,12 +26,6 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public final int speed;
 	public int cooldownTimer;
 	public ArrayList<PipeItem> items;
-	private PipeConnectionType[] faceConnections = {PipeConnectionType.NONE,
-													PipeConnectionType.NONE,
-													PipeConnectionType.NONE,
-													PipeConnectionType.NONE,
-													PipeConnectionType.NONE,
-													PipeConnectionType.NONE};
 	private boolean needsUpdate;
 	
 	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn, int speed)
@@ -42,18 +36,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		this.needsUpdate = false;
 	}
 	
-	private void updateFaceConnections()
-	{
-		for (int index = 0; index < this.faceConnections.length; index++)
-		{
-			Direction dir = Direction.byIndex(index);
-			this.faceConnections[index] = this.setConnectionType(dir);
-		}
-		this.markDirty();
-	}
-	
-	// should be implemented to define when the face should be connected
-	protected abstract PipeConnectionType setConnectionType(Direction face);
+	public abstract boolean isSideConnected(Direction direction);
 	
 	// should be implemented to define if the ends of a pipe should bounce back items or spit them out
 	protected abstract boolean doEndsBounceBack();
@@ -62,9 +45,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public void tick()
 	{
 		if (!world.isRemote)
-		{
-			this.updateFaceConnections();
-			
+		{	
 			//INSERT INTO OTHER INVENTORIES
 			Iterator<PipeItem> itr = this.items.iterator();
 			while (itr.hasNext())
@@ -73,22 +54,10 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 				if (item.getTicksInPipe() > this.speed)
 				{
 					Direction target = item.getTarget();
-					switch (this.getConnectionType(target))
+					if (this.sendItem(item, target))
 					{
-						case PIPE:
-						case INVENTORY:
-							if (this.sendItem(item, target))
-							{
-								itr.remove();
-								this.needsUpdate = true;
-							}
-						case END:
-							// TODO spit out item
-							break;
-						case NONE:
-							break;
-						default:
-							break;
+						itr.remove();
+						this.needsUpdate = true;
 					}
 				}	
 			}
@@ -99,7 +68,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 				this.cooldownTimer = 0;
 				for (Direction face : Direction.values())
 				{
-					if (this.getConnectionType(face) == PipeConnectionType.INVENTORY)
+					if (this.isSideConnected(face))
 					{
 						//if items have been sent out OR came in
 						this.needsUpdate |= this.pullFromInventory(face);
@@ -204,7 +173,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	// Direction priority for target selection (highest to lowest): Clockwise from source in order D-(S-W-N-E)-U
 	public Direction setTargetFace(Direction source)
 	{
-		if (this.getConnectionType(Direction.DOWN) != PipeConnectionType.NONE && source != Direction.DOWN)
+		if (this.isSideConnected(Direction.DOWN) && source != Direction.DOWN)
 		{
 			return Direction.DOWN;
 		}
@@ -216,7 +185,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 			return horizontalIndex;
 		}
 		
-		if (this.getConnectionType(Direction.UP) != PipeConnectionType.NONE && source != Direction.UP)
+		if (this.isSideConnected(Direction.UP) && source != Direction.UP)
 		{
 			return Direction.UP;
 		}
@@ -232,17 +201,12 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		for (int i = 0; i < 4; i++)
 		{
 			dir = Direction.byHorizontalIndex(dir.getHorizontalIndex() + 1);
-			if (this.getConnectionType(dir) != PipeConnectionType.NONE && dir != source)
+			if (this.isSideConnected(dir) && dir != source)
 			{
 				return dir;
 			}
 		}
 		return null;
-	}
-	
-	public PipeConnectionType getConnectionType(Direction face)
-	{
-		return face == null ? PipeConnectionType.NONE : this.faceConnections[face.getIndex()];
 	}
 	
 	public void dropInventory()
@@ -259,21 +223,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		super.write(nbt);
 		ListNBT items = new ListNBT();
 		this.items.forEach(item -> items.add(item.write(new CompoundNBT())));
-		
-		ListNBT faceConnections = new ListNBT();
-		if (this.faceConnections != null)
-		{
-			for (PipeConnectionType connection : this.faceConnections)
-			{
-				CompoundNBT typeNBT = new CompoundNBT();
-				typeNBT.putByte("Type", (byte)connection.getIndex());
-				faceConnections.add(typeNBT);
-			}
-		}
-		
-		
 		nbt.put("Items", items);
-		nbt.put("Connections", faceConnections);
 		return nbt;
 	}
 	
@@ -284,11 +234,6 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		ArrayList<PipeItem> items = new ArrayList<>();
 		ListNBT listNBT = nbt.getList("Items", 10);
 		listNBT.forEach((item)-> items.add(PipeItem.read((CompoundNBT)item)));
-		ListNBT faceConnections = nbt.getList("Connections", 10);
-		for (int i = 0; i < faceConnections.size(); i++)
-		{
-			this.faceConnections[i] = PipeConnectionType.byIndex(((CompoundNBT)faceConnections.get(i)).getByte("Type"));
-		}
 		this.items = items;
 	}
 	

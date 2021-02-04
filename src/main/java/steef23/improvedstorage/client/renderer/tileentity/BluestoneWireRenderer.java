@@ -18,7 +18,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import steef23.improvedstorage.common.tileentity.AbstractItemPipeTileEntity.PipeItem;
 import steef23.improvedstorage.common.tileentity.BluestoneWireTileEntity;
-import steef23.improvedstorage.core.init.IMPSItems;
 
 @OnlyIn(Dist.CLIENT)
 public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileEntity>
@@ -69,23 +68,13 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 		for (Direction d: Direction.values())
 		{
 			ItemStack stack; 
-			switch (wireTE.getConnectionType(d))
+			if (wireTE.isSideConnected(d))
 			{
-				case NONE:
-					stack = new ItemStack(Items.BEDROCK);
-					break;
-				case END:
-					stack = new ItemStack(IMPSItems.BLUESTONE_INGOT.get());
-					break;
-				case INVENTORY:
-					stack = new ItemStack(Items.CHEST);
-					break;
-				case PIPE:
-					stack = new ItemStack(Items.BLUE_WOOL);
-					break;
-				default:
-					stack = new ItemStack(Items.ACACIA_BOAT);
-					break;
+				stack = new ItemStack(Items.GREEN_CONCRETE);
+			}
+			else
+			{
+				stack = new ItemStack(Items.RED_CONCRETE);
 			}
 			matrixStackIn.push();
 			matrixStackIn.translate(d.toVector3f().getX() / 2, d.toVector3f().getY(), d.toVector3f().getZ() / 2);
