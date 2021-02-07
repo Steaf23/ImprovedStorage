@@ -6,7 +6,8 @@ public enum BluestoneSide implements IStringSerializable
 {
 	UP("up"),
 	SIDE("side"),
-	NONE("none");
+	NONE("none"),
+	END("end");
 	
 	private final String name;
 	
@@ -29,6 +30,11 @@ public enum BluestoneSide implements IStringSerializable
 	public boolean isValid()
 	{
 		return this != NONE;
+	}
+	
+	public boolean isEnd()
+	{
+		return this == END;
 	}
 
 }

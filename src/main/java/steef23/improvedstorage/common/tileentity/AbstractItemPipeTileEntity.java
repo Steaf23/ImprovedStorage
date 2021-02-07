@@ -2,6 +2,7 @@ package steef23.improvedstorage.common.tileentity;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -17,6 +18,7 @@ import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.VanillaInventoryCodeHooks;
@@ -36,16 +38,20 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		this.needsUpdate = false;
 	}
 	
-	public abstract boolean isSideConnected(Direction direction);
+	public abstract boolean canBeBlocked();
 	
-	// should be implemented to define if the ends of a pipe should bounce back items or spit them out
-	protected abstract boolean doEndsBounceBack();
+	public abstract boolean isSideConnected(Direction direction);
 	
 	@Override
 	public void tick()
 	{
 		if (!world.isRemote)
 		{	
+			for (PipeItem item : this.items)
+			{
+				item.tick();
+			}
+			
 			//INSERT INTO OTHER INVENTORIES
 			Iterator<PipeItem> itr = this.items.iterator();
 			while (itr.hasNext())
@@ -56,8 +62,13 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 					Direction target = item.getTarget();
 					if (this.sendItem(item, target))
 					{
+						//item successfully sent, now remove it from the list so it won't be sent again.
 						itr.remove();
 						this.needsUpdate = true;
+					}
+					else
+					{
+						this.resetTargets();
 					}
 				}	
 			}
@@ -86,43 +97,57 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	public boolean sendItem(PipeItem item, Direction outgoingFace)
 	{
 		TileEntity te = this.getWorld().getTileEntity(this.pos.offset(outgoingFace));
-		if (!(te instanceof AbstractItemPipeTileEntity))
+		if (te != null)
 		{
-			return VanillaInventoryCodeHooks.getItemHandler(this.world, 
-															te.getPos().getX(), 
-															te.getPos().getY(), 
-															te.getPos().getZ(), 
-															outgoingFace.getOpposite())
-					.map(destinationResult ->
-					{
-						IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
-						if (isInventoryFull(itemHandler))
+			if (!(te instanceof AbstractItemPipeTileEntity))
+			{
+				return VanillaInventoryCodeHooks.getItemHandler(this.world, 
+																te.getPos().getX(), 
+																te.getPos().getY(), 
+																te.getPos().getZ(), 
+																outgoingFace.getOpposite())
+						.map(destinationResult ->
 						{
-							return false;
-						}
-						else
-						{
-							if (item.isValid())
+							IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
+							if (isInventoryFull(itemHandler))
 							{
-								ItemStack insertStack = item.getItemStack().copy();
-	                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
-	                            if (remainder.isEmpty())
-	                            {
-	                                return true;
-	                            }
-	                            item.stack = remainder;
-	                            //set source to outgoing, meaning it will bounce back
-	                            item.source = outgoingFace;
-	                            item.ticksInPipe = 0;
+								return false;
 							}
-							return false;
-						}
-					})
-					.orElse(false);
+							else
+							{
+								if (item.isValid())
+								{
+									ItemStack insertStack = item.getItemStack().copy();
+		                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
+		                            if (remainder.isEmpty())
+		                            {
+		                                return true;
+		                            }
+		                            item.stack = remainder;
+		                            //set source to outgoing, meaning it will bounce back
+		                            item.source = outgoingFace;
+		                            item.ticksInPipe = 0;
+								}
+								return false;
+							}
+						})
+						.orElse(false);
+			}
+			else if (te instanceof AbstractItemPipeTileEntity)
+			{
+				item.source = outgoingFace.getOpposite();
+				item.ticksInPipe = 0;
+				((AbstractItemPipeTileEntity)te).receiveItem(item);
+				return true;
+			}
 		}
-		else if (te instanceof AbstractItemPipeTileEntity)
+		
+		//spit out item if target is set to a "NONE" face and it isn't blocked
+		BlockState state = this.world.getBlockState(this.getPos().offset(outgoingFace));
+		//if its not 
+		if (!(state.isSolidSide(this.world, this.getPos(), outgoingFace.getOpposite()) && canBeBlocked()))
 		{
-			((AbstractItemPipeTileEntity)te).receiveItem(item);
+			this.dropItem(item, null);
 			return true;
 		}
 		return false;
@@ -150,7 +175,6 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 								extractItem = handler.extractItem(index, handler.getStackInSlot(index).getCount(), false);
 								PipeItem item = new PipeItem(extractItem, incomingFace);
 								this.receiveItem(item);
-								this.markDirty();
 								return true;
 							}
 						}
@@ -163,37 +187,40 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 
 	public void receiveItem(PipeItem item)
 	{
-		item.target = setTargetFace(item.source);
+		item.target = getTargetFace(item.source);
 		if (item.target != null)
 		{
 			this.items.add(item);
 		}
+		this.markDirty();
 	}
 
-	// Direction priority for target selection (highest to lowest): Clockwise from source in order D-(S-W-N-E)-U
-	public Direction setTargetFace(Direction source)
+	/* 
+	 * Direction priority for target selection (highest to lowest): Clockwise from source in order D-(S-W-N-E)-U.
+	 * Override in subclass to set target to be spat out if desired by setting target to a BluestoneSide.NONE face.
+	 */
+	public Direction getTargetFace(Direction source)
 	{
 		if (this.isSideConnected(Direction.DOWN) && source != Direction.DOWN)
 		{
 			return Direction.DOWN;
 		}
-		
-		Direction horizontalIndex = this.setTargetFaceHorizontal(source);
-		
+			
+		Direction horizontalIndex = this.getTargetFaceHorizontal(source);
+			
 		if (horizontalIndex != null)
 		{
 			return horizontalIndex;
 		}
-		
+			
 		if (this.isSideConnected(Direction.UP) && source != Direction.UP)
 		{
 			return Direction.UP;
 		}
-		
 		return source;
 	}
 	
-	public Direction setTargetFaceHorizontal(Direction source)
+	public Direction getTargetFaceHorizontal(Direction source)
 	{
 		//if source is null, start as SOUTH
 		Direction dir = source == null ? Direction.SOUTH : source;
@@ -209,12 +236,32 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		return null;
 	}
 	
+	public void resetTargets()
+	{
+		for (PipeItem item : this.items)
+		{
+			item.target = this.getTargetFace(item.source);
+		}
+	}
+	
 	public void dropInventory()
 	{
 		for (PipeItem item : this.items)
 		{
-	    	InventoryHelper.spawnItemStack(this.world, this.pos.getX(), this.pos.getY(), this.pos.getZ(), item.getItemStack());
+	    	this.dropItem(item, null);
 		}
+	}
+	
+	public void dropItem(PipeItem item, @Nullable Vector3d addPos)
+	{
+		if (addPos == null)
+		{
+			addPos = Vector3d.ZERO;
+		}
+		InventoryHelper.spawnItemStack(this.world, this.pos.getX() + addPos.getX(), 
+												   this.pos.getY() + addPos.getY(), 
+												   this.pos.getZ() + addPos.getZ(), 
+												   item.getItemStack());
 	}
 
 	@Override
@@ -265,9 +312,15 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     }
 
     @Override
-    public void handleUpdateTag(BlockState blockState, CompoundNBT tag) 
+    public void handleUpdateTag(BlockState newState, CompoundNBT tag) 
     {
         deserializeNBT(tag);
+        
+        BlockState oldState = this.getBlockState();
+        if (!newState.isIn(oldState.getBlock()))
+        {
+        	this.resetTargets();
+        }
     }
     
 	/* ---------------------------------------------
@@ -402,7 +455,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	
     	public boolean isValid()
     	{
-    		return getItemStack().isEmpty();
+    		return !getItemStack().isEmpty();
     	}
     	
     	public CompoundNBT write(CompoundNBT compound)

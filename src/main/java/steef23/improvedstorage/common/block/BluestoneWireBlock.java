@@ -1,5 +1,6 @@
 package steef23.improvedstorage.common.block;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -119,28 +120,44 @@ public class BluestoneWireBlock extends Block
     	}
     	else
     	{
-			boolean isConnectedToNorth = state.get(NORTH) != BluestoneSide.NONE;
-			boolean isConnectedToEast = state.get(EAST) != BluestoneSide.NONE;
-			boolean isConnectedToSouth = state.get(SOUTH) != BluestoneSide.NONE;
-			boolean isConnectedToWest = state.get(WEST) != BluestoneSide.NONE;
-			if (isConnectedToNorth || isConnectedToSouth && !isConnectedToNorth && !isConnectedToEast && !isConnectedToWest) 
+			boolean isConnectedToNorth = state.get(NORTH).isValid();
+			boolean isConnectedToEast = state.get(EAST).isValid();
+			boolean isConnectedToSouth = state.get(SOUTH).isValid();
+			boolean isConnectedToWest = state.get(WEST).isValid();
+			if (isConnectedToNorth) 
 			{
 				state = state.with(NORTH, BluestoneSide.SIDE);
 			}
+			else if (isConnectedToSouth && !isConnectedToNorth && !isConnectedToEast && !isConnectedToWest)
+			{
+				state = state.with(NORTH, BluestoneSide.END);
+			}
 		
-			if (isConnectedToEast || isConnectedToWest && !isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth) 
+			if (isConnectedToEast) 
 			{
 				state = state.with(EAST, BluestoneSide.SIDE);
 			}
+			else if (isConnectedToWest && !isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth) 
+			{
+				state = state.with(EAST, BluestoneSide.END);
+			}
 		
-			if (isConnectedToSouth || isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth && !isConnectedToWest) 
+			if (isConnectedToSouth) 
 			{
 				state = state.with(SOUTH, BluestoneSide.SIDE);
 			}
+			else if (isConnectedToNorth && !isConnectedToEast && !isConnectedToSouth && !isConnectedToWest)
+			{
+				state = state.with(SOUTH, BluestoneSide.END);
+			}
 		
-			if (isConnectedToWest || isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth && !isConnectedToWest) 
+			if (isConnectedToWest) 
 			{
 				state = state.with(WEST, BluestoneSide.SIDE);
+			}
+			else if (isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth && !isConnectedToWest)
+			{
+				state = state.with(WEST, BluestoneSide.END);
 			}
 		
 			return state;
@@ -204,6 +221,19 @@ public class BluestoneWireBlock extends Block
     			!state.get(WEST).isValid();
     }
     
+    public static ArrayList<Direction> getvalidSides(BlockState state)
+    {
+    	ArrayList<Direction> sides = new ArrayList<>();
+    	FACING_PROPERTY_MAP.forEach((direction,bluestoneSide) ->
+    	{
+    		if (state.get(bluestoneSide).isValid())
+    		{
+        		sides.add(direction);
+    		}
+    	});
+    	return sides;
+    }
+    
     /**
      * performs updates on diagonal neighbors of the target position and passes in the flags. The flags can be referenced
      * from the docs for {@link IWorldWriter#setBlockState(IBlockState, BlockPos, int)}.
@@ -260,9 +290,11 @@ public class BluestoneWireBlock extends Block
         		return BluestoneSide.SIDE;
         	}
         }
-
+        
+        BlockState wireState = reader.getBlockState(pos);
         return !canConnectTo(blockstate, reader, blockpos, direction) && (blockstate.isNormalCube(reader, blockpos) || 
-        		!canConnectTo(reader.getBlockState(blockpos.down()), reader, blockpos.down(), null)) ? BluestoneSide.NONE : BluestoneSide.SIDE;
+        		!canConnectTo(reader.getBlockState(blockpos.down()), reader, blockpos.down(), null)) ? 
+        				this.getEndConnection(direction, wireState) ? BluestoneSide.END : BluestoneSide.NONE : BluestoneSide.SIDE;
     }
     
     public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) 
@@ -270,6 +302,21 @@ public class BluestoneWireBlock extends Block
     	BlockPos blockpos = pos.down();
     	BlockState blockstate = worldIn.getBlockState(blockpos);
     	return this.canPlaceOnTopOf(worldIn, blockpos, blockstate);
+    }
+    
+    public boolean getEndConnection(Direction face, BlockState state)
+    {
+    	
+    	boolean isConnectedToThis = state.get(FACING_PROPERTY_MAP.get(face)).isValid();
+		boolean isConnectedToOpposite = state.get(FACING_PROPERTY_MAP.get(face.getOpposite())).isValid();
+		boolean isConnectedToLeft = state.get(FACING_PROPERTY_MAP.get(face.rotateY())).isValid();
+		boolean isConnectedToRight = state.get(FACING_PROPERTY_MAP.get(face.rotateYCCW())).isValid();
+
+		if (isConnectedToThis && !isConnectedToOpposite && !isConnectedToLeft && !isConnectedToRight)
+		{
+			return true;
+		}
+		return false;
     }
     
     private boolean canPlaceOnTopOf(IBlockReader reader, BlockPos pos, BlockState state) 
