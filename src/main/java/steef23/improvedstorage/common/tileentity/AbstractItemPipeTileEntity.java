@@ -1,6 +1,7 @@
 package steef23.improvedstorage.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
@@ -147,7 +148,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		//if its not 
 		if (!(state.isSolidSide(this.world, this.getPos(), outgoingFace.getOpposite()) && canBeBlocked()))
 		{
-			this.dropItem(item, null);
+			this.dropItem(item, null, null);
 			return true;
 		}
 		return false;
@@ -173,8 +174,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 							if (!extractItem.isEmpty())
 							{
 								extractItem = handler.extractItem(index, handler.getStackInSlot(index).getCount(), false);
-								PipeItem item = new PipeItem(extractItem, incomingFace);
-								this.receiveItem(item);
+								this.receiveItemStack(extractItem, incomingFace);
 								return true;
 							}
 						}
@@ -184,7 +184,12 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		}
 		return false;
 	}
-
+	
+	public void receiveItemStack(ItemStack stack, @Nullable Direction source)
+	{
+		this.receiveItem(new PipeItem(stack, source));
+	}
+	
 	public void receiveItem(PipeItem item)
 	{
 		item.target = getTargetFace(item.source);
@@ -201,29 +206,32 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	 */
 	public Direction getTargetFace(Direction source)
 	{
-		if (this.isSideConnected(Direction.DOWN) && source != Direction.DOWN)
+		if (source != null)
 		{
-			return Direction.DOWN;
+			if (this.isSideConnected(Direction.DOWN) && source != Direction.DOWN)
+			{
+				return Direction.DOWN;
+			}
+				
+			Direction horizontalIndex = this.getTargetFaceHorizontal(source);
+				
+			if (horizontalIndex != null)
+			{
+				return horizontalIndex;
+			}
+				
+			if (this.isSideConnected(Direction.UP) && source != Direction.UP)
+			{
+				return Direction.UP;
+			}
 		}
-			
-		Direction horizontalIndex = this.getTargetFaceHorizontal(source);
-			
-		if (horizontalIndex != null)
-		{
-			return horizontalIndex;
-		}
-			
-		if (this.isSideConnected(Direction.UP) && source != Direction.UP)
-		{
-			return Direction.UP;
-		}
+		
 		return source;
 	}
 	
-	public Direction getTargetFaceHorizontal(Direction source)
+	public Direction getTargetFaceHorizontal(@Nonnull Direction source)
 	{
-		//if source is null, start as SOUTH
-		Direction dir = source == null ? Direction.SOUTH : source;
+		Direction dir = source;
 		
 		for (int i = 0; i < 4; i++)
 		{
@@ -246,22 +254,54 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	
 	public void dropInventory()
 	{
-		for (PipeItem item : this.items)
+		//INSERT INTO OTHER INVENTORIES
+		Iterator<PipeItem> itr = this.items.iterator();
+		while (itr.hasNext())
 		{
-	    	this.dropItem(item, null);
+			PipeItem item = itr.next();
+			if (item.getTicksInPipe() > this.speed)
+			{
+					this.dropItem(item, null, itr);
+					itr.remove();
+					this.needsUpdate = true;
+			}	
 		}
 	}
 	
-	public void dropItem(PipeItem item, @Nullable Vector3d addPos)
+	public void dropItem(@Nullable PipeItem item, @Nullable Vector3d addPos, @Nullable Iterator<PipeItem> itr)
 	{
-		if (addPos == null)
+		if (!this.items.isEmpty())
 		{
-			addPos = Vector3d.ZERO;
+			PipeItem item1 = item == null ? this.items.get(this.items.size() - 1) : item;
+			
+			if (addPos == null)
+			{
+				addPos = Vector3d.ZERO;
+			}
+			InventoryHelper.spawnItemStack(this.world, this.pos.getX() + addPos.getX(), 
+													   this.pos.getY() + addPos.getY(), 
+													   this.pos.getZ() + addPos.getZ(), 
+													   item1.getItemStack());
+			if (itr != null)
+			{
+				itr.remove();
+				this.markDirty();
+			}
+			else
+			{
+				try
+				{
+					this.items.remove(item1);
+					this.markDirty();
+				}
+				catch(ConcurrentModificationException e)
+				{
+					System.out.format("[ERROR]: Cant remove Pipe Item when iterating over list! \n");
+				}
+			}
+			System.out.format("[ERROR]: Couldn't remove Pipe Item");
 		}
-		InventoryHelper.spawnItemStack(this.world, this.pos.getX() + addPos.getX(), 
-												   this.pos.getY() + addPos.getY(), 
-												   this.pos.getZ() + addPos.getZ(), 
-												   item.getItemStack());
+		
 	}
 
 	@Override
@@ -438,14 +478,12 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	private int ticksInPipe;
     	private Direction target;
     	private Direction source;
-    	private boolean hasSource;
     	
     	protected PipeItem(ItemStack stack, @Nullable Direction source)
     	{
     		this.ticksInPipe = 0;
     		this.stack = stack;
-    		this.source = source;
-    		this.hasSource = source != null;
+    		this.source = source == null ? Direction.SOUTH : source;
     	}
     	
     	protected void tick()
@@ -463,11 +501,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     		getItemStack().write(compound);
     		compound.putByte("Ticks", (byte)getTicksInPipe());
     		compound.putByte("Target", (byte)target.getIndex());
-    		compound.putBoolean("hasSource", hasSource);
-    		if (hasSource)
-    		{
-    			compound.putByte("Source", (byte)source.getIndex());
-    		}
+    		compound.putByte("Source", (byte)source.getIndex());
     		return compound;
     	}
     	
@@ -475,7 +509,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	{
     		ItemStack item = ItemStack.read(compound);
     		Direction target = Direction.byIndex(compound.getByte("Target"));
-    		Direction source = compound.getBoolean("hasSource") ? Direction.byIndex(compound.getByte("Source")) : null;
+    		Direction source = Direction.byIndex(compound.getByte("Source"));
     		int ticksInPipe = compound.getByte("Ticks");
     		
     		PipeItem pipeItem = new PipeItem(item, source);
