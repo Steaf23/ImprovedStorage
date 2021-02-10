@@ -304,19 +304,26 @@ public class BluestoneWireBlock extends Block
     	return this.canPlaceOnTopOf(worldIn, blockpos, blockstate);
     }
     
+    //TODO CWASHY WASHY
     public boolean getEndConnection(Direction face, BlockState state)
     {
-    	
-    	boolean isConnectedToThis = state.get(FACING_PROPERTY_MAP.get(face)).isValid();
-		boolean isConnectedToOpposite = state.get(FACING_PROPERTY_MAP.get(face.getOpposite())).isValid();
-		boolean isConnectedToLeft = state.get(FACING_PROPERTY_MAP.get(face.rotateY())).isValid();
-		boolean isConnectedToRight = state.get(FACING_PROPERTY_MAP.get(face.rotateYCCW())).isValid();
-
-		if (isConnectedToThis && !isConnectedToOpposite && !isConnectedToLeft && !isConnectedToRight)
-		{
-			return true;
-		}
-		return false;
+    	try 
+    	{
+			boolean isConnectedToThis = state.get(FACING_PROPERTY_MAP.get(face)).isValid();
+			boolean isConnectedToOpposite = state.get(FACING_PROPERTY_MAP.get(face.getOpposite())).isValid();
+			boolean isConnectedToLeft = state.get(FACING_PROPERTY_MAP.get(face.rotateY())).isValid();
+			boolean isConnectedToRight = state.get(FACING_PROPERTY_MAP.get(face.rotateYCCW())).isValid();
+		
+			if (isConnectedToThis && !isConnectedToOpposite && !isConnectedToLeft && !isConnectedToRight)
+			{
+				return true;
+			}
+			return false;
+    	}
+    	catch(IllegalArgumentException e)
+    	{
+    		return false;
+    	}
     }
     
     private boolean canPlaceOnTopOf(IBlockReader reader, BlockPos pos, BlockState state) 
@@ -479,12 +486,22 @@ public class BluestoneWireBlock extends Block
 	   			BluestoneWireTileEntity wireTE = (BluestoneWireTileEntity)te;
 	   			if (player.getHeldItem(handIn) == ItemStack.EMPTY)
 	   			{
-	   				wireTE.setRenderDebug(!wireTE.getRenderDebug());
-	   				System.out.format("Render debug enabled: %b\n", wireTE.getRenderDebug());
+	   				if (player.isSneaking())
+	   				{
+	   					wireTE.setRenderDebug(!wireTE.getRenderDebug());
+	   					System.out.format("Render debug enabled: %b\n", wireTE.getRenderDebug());
+	   				}
+	   				else
+	   				{
+	   					wireTE.dropItem(null, null, null);
+	   					return ActionResultType.SUCCESS;
+	   				}
    	   			}
 	   			else
 	   			{
-	   				//TODO Add method call to put items in from hand
+	   				wireTE.receiveItemStack(player.getHeldItem(handIn), null);
+	   				player.setHeldItem(handIn, ItemStack.EMPTY);
+	   				return ActionResultType.SUCCESS;
 	   			}
 	   		}
    			
