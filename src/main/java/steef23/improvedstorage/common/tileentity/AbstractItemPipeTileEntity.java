@@ -1,7 +1,6 @@
 package steef23.improvedstorage.common.tileentity;
 
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
@@ -18,6 +17,7 @@ import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.common.util.Constants;
@@ -26,15 +26,13 @@ import net.minecraftforge.items.VanillaInventoryCodeHooks;
 
 public abstract class AbstractItemPipeTileEntity extends TileEntity implements ITickableTileEntity
 {
-	public final int speed;
 	public int cooldownTimer;
 	public ArrayList<PipeItem> items;
 	private boolean needsUpdate;
 	
-	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn, int speed)
+	public AbstractItemPipeTileEntity(TileEntityType<?> tileEntityTypeIn)
 	{
 		super(tileEntityTypeIn);
-		this.speed = speed;
 		this.items = new ArrayList<>();
 		this.needsUpdate = false;
 	}
@@ -43,39 +41,39 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	
 	public abstract boolean isSideConnected(Direction direction);
 	
+	public abstract int getSpeed();
+	
 	@Override
 	public void tick()
 	{
 		if (!world.isRemote)
 		{	
+			//INSERT INTO OTHER INVENTORIES
 			for (PipeItem item : this.items)
 			{
-				item.tick();
-			}
-			
-			//INSERT INTO OTHER INVENTORIES
-			Iterator<PipeItem> itr = this.items.iterator();
-			while (itr.hasNext())
-			{
-				PipeItem item = itr.next();
-				if (item.getTicksInPipe() > this.speed)
+				if (item.getTicksInPipe() > this.getSpeed() && !item.isRemoved)
 				{
 					Direction target = item.getTarget();
-					if (this.sendItem(item, target))
+					switch (this.sendItem(item, target))
 					{
-						//item successfully sent, now remove it from the list so it won't be sent again.
-						itr.remove();
-						this.needsUpdate = true;
+						case SUCCESS:
+							item = item.remove();
+							this.needsUpdate = true;
+							break;
+						case PASS:
+							item = item.remove();
+							this.needsUpdate = true;
+							break;
+						default: 
+							resetTargets();
+							break;
 					}
-					else
-					{
-						this.resetTargets();
-					}
-				}	
+				}
 			}
+
 			//EXTRACT FROM OTHER INVENTORIES
 			this.cooldownTimer++;
-			if (this.cooldownTimer >= this.speed)
+			if (this.cooldownTimer >= this.getSpeed())
 			{
 				this.cooldownTimer = 0;
 				for (Direction face : Direction.values())
@@ -87,15 +85,31 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 					}
 				}
 			}
+			
+			Iterator<PipeItem> itr = this.items.iterator();
+			while (itr.hasNext())
+			{
+				PipeItem item = itr.next();
+				if (item.isRemoved)
+				{
+					itr.remove();
+				}
+			}
+			
 			if (needsUpdate)
 			{
 				needsUpdate = false;
 				this.markDirty();
 			}
 		}
+		
+		for (PipeItem item : this.items)
+		{
+			item.tick();
+		}
 	}
 	
-	public boolean sendItem(PipeItem item, Direction outgoingFace)
+	public ActionResultType sendItem(PipeItem item, Direction outgoingFace)
 	{
 		TileEntity te = this.getWorld().getTileEntity(this.pos.offset(outgoingFace));
 		if (te != null)
@@ -112,7 +126,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 							IItemHandlerModifiable itemHandler = (IItemHandlerModifiable)destinationResult.getKey();
 							if (isInventoryFull(itemHandler))
 							{
-								return false;
+								return ActionResultType.FAIL;
 							}
 							else
 							{
@@ -122,24 +136,25 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		                               ItemStack remainder = insertIntoHandler(itemHandler, insertStack, outgoingFace.getOpposite());
 		                            if (remainder.isEmpty())
 		                            {
-		                                return true;
+		                            	item.remove();
+		                                return ActionResultType.SUCCESS;
 		                            }
 		                            item.stack = remainder;
 		                            //set source to outgoing, meaning it will bounce back
 		                            item.source = outgoingFace;
 		                            item.ticksInPipe = 0;
 								}
-								return false;
+								return ActionResultType.FAIL;
 							}
 						})
-						.orElse(false);
+						.orElse(ActionResultType.FAIL);
 			}
 			else if (te instanceof AbstractItemPipeTileEntity)
 			{
 				item.source = outgoingFace.getOpposite();
 				item.ticksInPipe = 0;
-				((AbstractItemPipeTileEntity)te).receiveItem(item);
-				return true;
+				((AbstractItemPipeTileEntity)te).receiveItem(item.getCopy());
+				return ActionResultType.PASS;
 			}
 		}
 		
@@ -148,10 +163,10 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 		//if its not 
 		if (!(state.isSolidSide(this.world, this.getPos(), outgoingFace.getOpposite()) && canBeBlocked()))
 		{
-			this.dropItem(item, null, null);
-			return true;
+			this.dropItem(item, null);
+			return ActionResultType.SUCCESS;
 		}
-		return false;
+		return ActionResultType.FAIL;
 	}
 	
 	private boolean pullFromInventory(Direction incomingFace)
@@ -254,54 +269,29 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 	
 	public void dropInventory()
 	{
-		//INSERT INTO OTHER INVENTORIES
-		Iterator<PipeItem> itr = this.items.iterator();
-		while (itr.hasNext())
+		for (PipeItem item : this.items)
 		{
-			PipeItem item = itr.next();
-			if (item.getTicksInPipe() > this.speed)
-			{
-					this.dropItem(item, null, itr);
-					itr.remove();
-					this.needsUpdate = true;
-			}	
+			this.dropItem(item, null);
 		}
 	}
 	
-	public void dropItem(@Nullable PipeItem item, @Nullable Vector3d addPos, @Nullable Iterator<PipeItem> itr)
+	public void dropItem(PipeItem item, @Nullable Vector3d addPos)
 	{
-		if (!this.items.isEmpty())
+		if (item == null)
 		{
-			PipeItem item1 = item == null ? this.items.get(this.items.size() - 1) : item;
-			
-			if (addPos == null)
-			{
-				addPos = Vector3d.ZERO;
-			}
-			InventoryHelper.spawnItemStack(this.world, this.pos.getX() + addPos.getX(), 
-													   this.pos.getY() + addPos.getY(), 
-													   this.pos.getZ() + addPos.getZ(), 
-													   item1.getItemStack());
-			if (itr != null)
-			{
-				itr.remove();
-				this.markDirty();
-			}
-			else
-			{
-				try
-				{
-					this.items.remove(item1);
-					this.markDirty();
-				}
-				catch(ConcurrentModificationException e)
-				{
-					System.out.format("[ERROR]: Cant remove Pipe Item when iterating over list! \n");
-				}
-			}
-			System.out.format("[ERROR]: Couldn't remove Pipe Item");
+			if (this.items.isEmpty()) return;
+			item = this.items.get(this.items.size() - 1);
 		}
-		
+		if (addPos == null)
+		{
+			addPos = Vector3d.ZERO;
+		}
+		InventoryHelper.spawnItemStack(this.world, this.pos.getX() + addPos.getX(), 
+												   this.pos.getY() + addPos.getY(), 
+												   this.pos.getZ() + addPos.getZ(), 
+												   item.getItemStack());
+		item = item.remove();
+		this.markDirty();
 	}
 
 	@Override
@@ -478,12 +468,14 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	private int ticksInPipe;
     	private Direction target;
     	private Direction source;
+    	private boolean isRemoved;
     	
     	protected PipeItem(ItemStack stack, @Nullable Direction source)
     	{
     		this.ticksInPipe = 0;
     		this.stack = stack;
     		this.source = source == null ? Direction.SOUTH : source;
+    		this.isRemoved = false;
     	}
     	
     	protected void tick()
@@ -548,6 +540,22 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
     	{
     		this.ticksInPipe = ticks;
     		return this;
+    	}
+    	
+    	public boolean isRemoved()
+		{
+			return isRemoved;
+		}
+    	
+    	public PipeItem remove()
+		{
+			this.isRemoved = true;
+			return this;
+		}
+    	
+    	public PipeItem getCopy()
+    	{
+    		return new PipeItem(this.stack, this.source).getWithTarget(this.target).getWithTicks(this.ticksInPipe);
     	}
 	}
 }

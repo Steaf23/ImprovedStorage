@@ -1,7 +1,5 @@
 package steef23.improvedstorage.client.renderer.tileentity;
 
-import java.util.ArrayList;
-
 import com.mojang.blaze3d.matrix.MatrixStack;
 
 import net.minecraft.client.Minecraft;
@@ -38,32 +36,38 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 			renderDebugOverlay(wireTE, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
 		}
 		
-		ArrayList<PipeItem> items = wireTE.items;
-		for (int i = 0; i < items.size(); i++) 
+		for (PipeItem item : wireTE.items)
 		{
-			ItemStack stack = items.get(i).getItemStack();
-			if (!stack.isEmpty()) 
+			if (item.isValid())
 			{
-				matrixStackIn.push();
-				Vector3d vec = new Vector3d(0.5D, 0.5D, (double)i / items.size());
-				matrixStackIn.translate(vec.getX(), vec.getY(), vec.getZ());
-				matrixStackIn.scale(.5f, .5f, .5f);
-				renderItem(stack, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
-				matrixStackIn.pop();
-				this.renderTargetOverlay(items.get(i), partialTicks, matrixStackIn, bufferIn, combinedLightIn);
-
+				renderPipeItem(item, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
+				
+				this.renderTargetOverlay(item, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
 			}
-		}				
+		}
+		
 		matrixStackIn.pop();
 	}
 	
-	private void renderItem(ItemStack stack, float PartialTicks, MatrixStack matrixStackIn, 
+	private void renderPipeItem(PipeItem item, float partialTicks, MatrixStack matrixStackIn, 
 			IRenderTypeBuffer bufferIn, int combinedLightIn)
 	{
-		Minecraft.getInstance().getItemRenderer().renderItem(stack, TransformType.FIXED, combinedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn);
+		Vector3d sourcePos = new Vector3d(item.getSource().toVector3f().getX() / 2, 
+				  						  item.getSource().toVector3f().getY(), 
+				  						  item.getSource().toVector3f().getZ() / 2);
+		Vector3d targetPos = new Vector3d(item.getTarget().toVector3f().getX() / 2, 
+										  item.getTarget().toVector3f().getY(), 
+										  item.getTarget().toVector3f().getZ() / 2);
+		//(total travel distance / amount of steps) * how far it is
+		matrixStackIn.push();
+		matrixStackIn.translate(((targetPos.getX() - sourcePos.getX()) / (float)BluestoneWireTileEntity.SPEED) * (item.getTicksInPipe() + partialTicks) + .5f, 0.2f, 
+								((targetPos.getZ() - sourcePos.getZ()) / (float)BluestoneWireTileEntity.SPEED) * (item.getTicksInPipe() + partialTicks) + .5f);
+		matrixStackIn.scale(0.7f, 0.7f, 0.7f);
+		Minecraft.getInstance().getItemRenderer().renderItem(item.getItemStack(), TransformType.FIXED, combinedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn);
+		matrixStackIn.pop();
 	}
 	
-	private void renderDebugOverlay(BluestoneWireTileEntity wireTE, float PartialTicks, MatrixStack matrixStackIn, 
+	private void renderDebugOverlay(BluestoneWireTileEntity wireTE, float partialTicks, MatrixStack matrixStackIn, 
 			IRenderTypeBuffer bufferIn, int combinedLightIn)
 	{
 		matrixStackIn.push();
@@ -79,7 +83,7 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 			{
 				stack = new ItemStack(Items.RED_CONCRETE);
 			}
-			this.renderFacedOverlay(d, stack, PartialTicks, matrixStackIn, bufferIn, combinedLightIn);
+			this.renderFacedOverlay(d, stack, partialTicks, matrixStackIn, bufferIn, combinedLightIn);
 		}
 		matrixStackIn.pop();
 	}
@@ -100,7 +104,7 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 		matrixStackIn.push();
 		matrixStackIn.translate(face.toVector3f().getX() / 2, face.toVector3f().getY(), face.toVector3f().getZ() / 2);
 		matrixStackIn.scale(.5f, .5f, .5f);
-		this.renderItem(stack, PartialTicks, matrixStackIn, bufferIn, combinedLightIn);
+		Minecraft.getInstance().getItemRenderer().renderItem(stack, TransformType.FIXED, combinedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn);
 		matrixStackIn.pop();
 	}
 }

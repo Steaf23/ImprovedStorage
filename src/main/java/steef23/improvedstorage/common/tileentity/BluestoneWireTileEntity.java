@@ -10,11 +10,12 @@ import steef23.improvedstorage.core.init.IMPSTileEntities;
 
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 {
+	public static final int SPEED = 20;
 	private boolean renderDebug = false;
 	
-	protected BluestoneWireTileEntity(TileEntityType<?> typeIn) 
+	protected BluestoneWireTileEntity(TileEntityType<?> tileEntityTypeIn) 
 	{
-		super(typeIn, 20);
+		super(tileEntityTypeIn);
 	}
 	
 	public BluestoneWireTileEntity()
@@ -56,6 +57,12 @@ public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 			}
 		}
 		return super.getTargetFace(source);
+	}
+	
+	@Override
+	public int getSpeed()
+	{
+		return SPEED;
 	}
 	
 	public void setRenderDebug(boolean value)

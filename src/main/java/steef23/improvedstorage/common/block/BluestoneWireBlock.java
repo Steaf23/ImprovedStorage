@@ -493,7 +493,7 @@ public class BluestoneWireBlock extends Block
 	   				}
 	   				else
 	   				{
-	   					wireTE.dropItem(null, null, null);
+	   					wireTE.dropItem(null, null);
 	   					return ActionResultType.SUCCESS;
 	   				}
    	   			}
