@@ -51,7 +51,7 @@ public abstract class AbstractItemPipeTileEntity extends TileEntity implements I
 			//INSERT INTO OTHER INVENTORIES
 			for (PipeItem item : this.items)
 			{
-				if (item.getTicksInPipe() > this.getSpeed() && !item.isRemoved)
+				if (item.getTicksInPipe() >= this.getSpeed() && !item.isRemoved)
 				{
 					Direction target = item.getTarget();
 					switch (this.sendItem(item, target))

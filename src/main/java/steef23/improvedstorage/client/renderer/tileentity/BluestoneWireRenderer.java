@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -52,16 +53,33 @@ public class BluestoneWireRenderer extends TileEntityRenderer<BluestoneWireTileE
 	private void renderPipeItem(PipeItem item, float partialTicks, MatrixStack matrixStackIn, 
 			IRenderTypeBuffer bufferIn, int combinedLightIn)
 	{
-		Vector3d sourcePos = new Vector3d(item.getSource().toVector3f().getX() / 2, 
+		Vector3d sourcePos = new Vector3d(item.getSource().toVector3f().getX() / 2 + 0.5, 
 				  						  item.getSource().toVector3f().getY(), 
-				  						  item.getSource().toVector3f().getZ() / 2);
-		Vector3d targetPos = new Vector3d(item.getTarget().toVector3f().getX() / 2, 
+				  						  item.getSource().toVector3f().getZ() / 2 + 0.5);
+		Vector3d targetPos = new Vector3d(item.getTarget().toVector3f().getX() / 2 + 0.5, 
 										  item.getTarget().toVector3f().getY(), 
-										  item.getTarget().toVector3f().getZ() / 2);
-		//(total travel distance / amount of steps) * how far it is
+										  item.getTarget().toVector3f().getZ() / 2 + 0.5);
+		Vector3d middlePos = new Vector3d(0.5D, 0.0D, 0.5D);
+		
 		matrixStackIn.push();
-		matrixStackIn.translate(((targetPos.getX() - sourcePos.getX()) / (float)BluestoneWireTileEntity.SPEED) * (item.getTicksInPipe() + partialTicks) + .5f, 0.2f, 
-								((targetPos.getZ() - sourcePos.getZ()) / (float)BluestoneWireTileEntity.SPEED) * (item.getTicksInPipe() + partialTicks) + .5f);
+		
+		double speed = (double)BluestoneWireTileEntity.SPEED;
+		int ticks = item.getTicksInPipe();
+		Vector3d lerpPos = Vector3d.ZERO;
+		if (ticks < speed / 2)
+		{
+			lerpPos = new Vector3d(MathHelper.lerp((ticks + partialTicks) / (speed / 2), sourcePos.x, middlePos.x), 
+								   0.2D, 
+								   MathHelper.lerp((ticks + partialTicks) / (speed / 2), sourcePos.z, middlePos.z));
+		}
+		else
+		{
+			lerpPos = new Vector3d(MathHelper.lerp((ticks + partialTicks - (speed / 2)) / (speed / 2), middlePos.x, targetPos.x), 
+					   			   0.2D, 
+					   			   MathHelper.lerp((ticks + partialTicks - (speed / 2)) / (speed / 2), middlePos.z, targetPos.z));
+		}
+		matrixStackIn.translate(lerpPos.x, lerpPos.y, lerpPos.z);
+		
 		matrixStackIn.scale(0.7f, 0.7f, 0.7f);
 		Minecraft.getInstance().getItemRenderer().renderItem(item.getItemStack(), TransformType.FIXED, combinedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn);
 		matrixStackIn.pop();

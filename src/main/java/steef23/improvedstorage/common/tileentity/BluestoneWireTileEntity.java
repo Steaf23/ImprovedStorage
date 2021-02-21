@@ -10,7 +10,7 @@ import steef23.improvedstorage.core.init.IMPSTileEntities;
 
 public class BluestoneWireTileEntity extends AbstractItemPipeTileEntity
 {
-	public static final int SPEED = 20;
+	public static final int SPEED = 2;
 	private boolean renderDebug = false;
 	
 	protected BluestoneWireTileEntity(TileEntityType<?> tileEntityTypeIn) 
