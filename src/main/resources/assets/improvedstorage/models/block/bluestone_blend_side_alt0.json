@@ -1,6 +1,0 @@
-{
-    "parent": "improvedstorage:block/bluestone_blend_side_alt",
-    "textures": {
-        "line": "improvedstorage:block/bluestone_blend_line0"
-    }
-}
