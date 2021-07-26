@@ -12,10 +12,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import steef23.improvedstorage.core.init.IMPSBlockEntities;
-import steef23.improvedstorage.core.init.IMPSBlocks;
-import steef23.improvedstorage.core.init.IMPSItems;
-import steef23.improvedstorage.core.init.IMPSMenus;
+import steef23.improvedstorage.core.init.*;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("improvedstorage")
@@ -34,6 +31,7 @@ public class ImprovedStorage
         IMPSBlocks.BLOCKS.register(bus);
         IMPSBlockEntities.BLOCK_ENTITY_TYPES.register(bus);
         IMPSMenus.MENU_TYPES.register(bus);
+        IMPSEntities.ENTITY_TYPES.register(bus);
 
         MinecraftForge.EVENT_BUS.register(this);
     }

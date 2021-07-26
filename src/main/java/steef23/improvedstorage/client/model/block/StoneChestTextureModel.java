@@ -1,4 +1,4 @@
-package steef23.improvedstorage.client.renderer.block.model;
+package steef23.improvedstorage.client.model.block;
 
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.resources.ResourceLocation;

@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import steef23.improvedstorage.client.renderer.block.model.StoneChestTextureModel;
+import steef23.improvedstorage.client.model.block.StoneChestTextureModel;
 import steef23.improvedstorage.common.world.level.block.StoneChestBlock;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 
