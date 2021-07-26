@@ -11,7 +11,7 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import steef23.improvedstorage.common.world.entity.StoneGolem;
 
-public class StoneGolemModel<T extends StoneGolem> extends EntityModel<T>
+public class StoneGolemModel extends EntityModel<StoneGolem>
 {
 	private final ModelPart body;
 	private final ModelPart head;
@@ -25,10 +25,10 @@ public class StoneGolemModel<T extends StoneGolem> extends EntityModel<T>
 
 		this.body = model;
 		this.head = model.getChild("head");
-		this.rightArm = model.getChild("right_arm");
-		this.leftArm = model.getChild("left_arm");
-		this.rightLeg = model.getChild("right_leg");
-		this.leftLeg = model.getChild("left_leg");
+		this.rightArm = model.getChild("head");
+		this.leftArm = model.getChild("head");
+		this.rightLeg = model.getChild("head");
+		this.leftLeg = model.getChild("head");
 
 //		this.stoneGolemBody.setRotationPoint(0.0f, 24.0f, 0.0f);
 //		this.stoneGolemBody.addBox(-7.0f, -18.0f, -6.0f, 14, 14, 12, 0.0f, false);
@@ -71,15 +71,13 @@ public class StoneGolemModel<T extends StoneGolem> extends EntityModel<T>
 
 	// TODO: Create a way to open up the head part when interacting with a player
 	@Override
-	public void setupAnim(T entityIn, float limbSwing, float limbSwingAmount, float ageInTicks,
+	public void setupAnim(StoneGolem entityIn, float limbSwing, float limbSwingAmount, float ageInTicks,
 			float netHeadYaw, float headPitch) 
 	{
 	      this.leftLeg.xRot = -1.5f * this.triangleWave(limbSwing, 13.0f) * limbSwingAmount;
 	      this.rightLeg.xRot = 1.5f * this.triangleWave(limbSwing, 13.0f) * limbSwingAmount;
 	      this.leftArm.xRot = 0.75f * this.triangleWave(limbSwing, 13.0f) * limbSwingAmount;
 	      this.rightArm.xRot = -0.75f * this.triangleWave(limbSwing, 13.0f) * limbSwingAmount;
-
-
 	}
 
 	@Override
@@ -93,5 +91,4 @@ public class StoneGolemModel<T extends StoneGolem> extends EntityModel<T>
 	{
 		return (Math.abs(limbSwing % f2 - f2 * 0.5f) - f2 * 0.25f) / (f2 * 0.25f);
 	}
-
 }
