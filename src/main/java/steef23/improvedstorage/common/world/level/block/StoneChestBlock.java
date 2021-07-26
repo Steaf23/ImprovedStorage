@@ -46,7 +46,7 @@ public class StoneChestBlock extends Block implements SimpleWaterloggedBlock, En
 	
 	private BlockPattern stoneGolemPattern;
 
-	public StoneChestBlock(BlockBehaviour.Properties propertiesIn, Supplier<BlockEntityType<? extends StoneChestBlockEntity>> tileEntityTypeSupplierIn)
+	public StoneChestBlock(Supplier<BlockEntityType<? extends StoneChestBlockEntity>> tileEntityTypeSupplierIn, BlockBehaviour.Properties propertiesIn)
 	{
 		super(propertiesIn);
 		

@@ -1,12 +1,8 @@
 package steef23.improvedstorage.common.world.inventory;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.IWorldPosCallable;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -16,26 +12,24 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.SlotItemHandler;
-import steef23.improvedstorage.common.tileentity.StoneChestTileEntity;
 import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
-import steef23.improvedstorage.core.init.IMPSBlocks;
 import steef23.improvedstorage.core.init.IMPSMenus;
 
 import java.util.Objects;
 
-public class StoneChestMenu implements AbstractContainerMenu
+public class StoneChestMenu extends AbstractContainerMenu
 {
 	private final Container container;
-	private final IWorldPosCallable canInteractWithCallable;
+//	private final IWorldPosCallable canInteractWithCallable;
 	
-	public StoneChestMenu(MenuType<?> type, final int windowId, final Inventory playerInventory, final int data)
+	public StoneChestMenu(final int windowId, final Inventory playerInventory, final FriendlyByteBuf data)
 	{
-		this(windowId, playerInventory, getContainer(playerInventory, data));
+		this(IMPSMenus.STONE_CHEST.get(), windowId, playerInventory, getContainer(playerInventory, data));
 	}
 	
 	public StoneChestMenu(MenuType<?> type, final int windowId, final Inventory playerInventory, final Container container)
 	{
-		super(IMPSMenus.STONE_CHEST.get(), windowId);
+		super(type, windowId);
 		this.container = container;
 //		this.canInteractWithCallable = IWorldPosCallable.of(container.getWorld(), tileEntity.getPos());
 		this.container.startOpen(playerInventory.player);
@@ -48,7 +42,7 @@ public class StoneChestMenu implements AbstractContainerMenu
 		{
 			for(int column = 0; column < 9; column++)
 			{
-				this.addSlot(new SlotItemHandler((IItemHandlerModifiable)container, (row * 9) + column, startX + (column * slotSizePlusOffset), startY + (row * slotSizePlusOffset)));
+				this.addSlot(new Slot(container, (row * 9) + column, startX + (column * slotSizePlusOffset), startY + (row * slotSizePlusOffset)));
 			}
 		}
 		
@@ -58,7 +52,7 @@ public class StoneChestMenu implements AbstractContainerMenu
 		{
 			for (int column = 0; column < 9; column++)
 			{
-				this.addSlot(new SlotItemHandler((IItemHandlerModifiable)playerInventory, 9 + (row * 9) + column, startX + (column * slotSizePlusOffset), startPlayerInvY + (row *  slotSizePlusOffset)));
+				this.addSlot(new Slot(playerInventory, 9 + (row * 9) + column, startX + (column * slotSizePlusOffset), startPlayerInvY + (row *  slotSizePlusOffset)));
 			}
 		}
 		
@@ -69,8 +63,8 @@ public class StoneChestMenu implements AbstractContainerMenu
 			this.addSlot(new Slot(playerInventory, column,  startX + (column *  slotSizePlusOffset), hotbarY));
 		}
 	}
-	
-	private static Container getContainer(final Inventory playerInventory, final PacketBuffer data)
+
+	private static Container getContainer(final Inventory playerInventory, final FriendlyByteBuf data)
 	{
 		Objects.requireNonNull(playerInventory, "playerInventory cannot be null");
 		Objects.requireNonNull(data, "data cannot be null");
@@ -82,11 +76,11 @@ public class StoneChestMenu implements AbstractContainerMenu
 		throw new IllegalStateException("Tile entity is not correct! " + tileAtPos);
 	}
 
-	@Override
-	public boolean canInteractWith(Player playerIn)
-	{
-		return isWithinUsableDistance(canInteractWithCallable, playerIn, IMPSBlocks.STONE_CHEST.get());
-	}
+//	@Override
+//	public boolean canInteractWith(Player playerIn)
+//	{
+//		return isWithinUsableDistance(canInteractWithCallable, playerIn, IMPSBlocks.STONE_CHEST.get());
+//	}
 	
 	@Override
 	public ItemStack quickMoveStack(Player playerIn, int index) {
@@ -119,10 +113,16 @@ public class StoneChestMenu implements AbstractContainerMenu
 		}
 		return itemStack;
 	}
-	
+
 	@Override
-	public void onContainerClosed(Player playerIn) {
-		super.onContainerClosed(playerIn);
-		this.tileEntity.closeInventory(playerIn);
+	public boolean stillValid(Player player)
+	{
+		return this.container.stillValid(player);
+	}
+
+	@Override
+	public void removed(Player playerIn) {
+		super.removed(playerIn);
+		this.container.stopOpen(playerIn);
 	}
 }

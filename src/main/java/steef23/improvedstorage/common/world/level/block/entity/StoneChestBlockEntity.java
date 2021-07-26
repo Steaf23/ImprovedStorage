@@ -28,6 +28,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import steef23.improvedstorage.common.world.inventory.StoneChestMenu;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
+import steef23.improvedstorage.core.init.IMPSMenus;
 
 public class StoneChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity
 {
@@ -100,7 +101,7 @@ public class StoneChestBlockEntity extends RandomizableContainerBlockEntity impl
 	@Override
 	protected AbstractContainerMenu createMenu(int id, Inventory player)
 	{
-		return new StoneChestMenu(id, player, this);
+		return new StoneChestMenu(IMPSMenus.STONE_CHEST.get(), id, player, this);
 	}
 
 	@Override

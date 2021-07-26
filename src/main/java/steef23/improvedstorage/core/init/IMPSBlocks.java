@@ -33,9 +33,9 @@ public class IMPSBlocks
 
 	public static final RegistryObject<Block> STONE_CHEST = BLOCKS.register("stone_chest", () ->
 	new StoneChestBlock(IMPSBlockEntities.STONE_CHEST::get, Block.Properties.of(Material.STONE)
-																								.strength(0.6f, 16.0f)
-																								.sound(SoundType.STONE)
-																								.noOcclusion()));
+																			.strength(0.6f, 16.0f)
+																			.sound(SoundType.STONE)
+																			.noOcclusion()));
 	public static final RegistryObject<Block> BLUESTONE_TABLE = BLOCKS.register("bluestone_table", () ->
 	new BluestoneTableBlock(IMPSBlockEntities.BLUESTONE_TABLE::get, Block.Properties.copy(Blocks.CRAFTING_TABLE)));
 
