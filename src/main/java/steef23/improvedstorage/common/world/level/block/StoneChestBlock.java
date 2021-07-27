@@ -15,6 +15,7 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -35,7 +36,7 @@ import steef23.improvedstorage.core.init.IMPSBlockEntities;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class StoneChestBlock extends Block implements SimpleWaterloggedBlock, EntityBlock
+public class StoneChestBlock extends AbstractChestBlock<StoneChestBlockEntity> implements SimpleWaterloggedBlock, EntityBlock
 {
 
 	private static final VoxelShape SHAPE = Block.box(1.0D, 0.0D, 1.0D, 15.0D, 14.0D, 15.0D);
@@ -48,7 +49,7 @@ public class StoneChestBlock extends Block implements SimpleWaterloggedBlock, En
 
 	public StoneChestBlock(Supplier<BlockEntityType<? extends StoneChestBlockEntity>> tileEntityTypeSupplierIn, BlockBehaviour.Properties propertiesIn)
 	{
-		super(propertiesIn);
+		super(propertiesIn, IMPSBlockEntities.STONE_CHEST::get);
 		
 		this.tileEntityTypeSupplier = tileEntityTypeSupplierIn;
 		this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(WATERLOGGED, Boolean.FALSE));
@@ -225,7 +226,12 @@ public class StoneChestBlock extends Block implements SimpleWaterloggedBlock, En
 		Direction direction = blockState.getValue(FACING);
 		return direction.getCounterClockWise();
 	}
-	
+
+	@Override
+	public DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> combine(BlockState p_53149_, Level p_53150_, BlockPos p_53151_, boolean p_53152_) {
+		return DoubleBlockCombiner.Combiner::acceptNone;
+	}
+
 //	@Override
 //	public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving)
 //	{

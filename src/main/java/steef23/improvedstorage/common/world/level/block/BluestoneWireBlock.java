@@ -23,6 +23,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.common.world.level.block.entity.AbstractItemPipeBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
@@ -458,6 +459,7 @@ public class BluestoneWireBlock extends Block implements EntityBlock
 	   				{
 	   					wireTE.setRenderDebug(!wireTE.getRenderDebug());
 	   					System.out.format("Render debug enabled: %b\n", wireTE.getRenderDebug());
+	   					wireTE.setChanged();
 	   				}
 	   				else
 	   				{

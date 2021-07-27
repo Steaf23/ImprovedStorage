@@ -8,7 +8,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -281,7 +280,6 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
 				this.getBlockPos().getY() + addPos.y,
 				this.getBlockPos().getZ() + addPos.z,
 				item.getItemStack());
-		item = item.remove();
 		this.setChanged();
 	}
 
@@ -303,6 +301,14 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
 		this.items.forEach(item -> items.add(item.save(new CompoundTag())));
 		nbt.put("Items", items);
 		return nbt;
+	}
+
+	@Override
+	public void setChanged()
+	{
+		assert this.level != null;
+		super.setChanged();
+		this.level.blockUpdated(this.getBlockPos(), this.getBlockState().getBlock());
 	}
 
 	@Nullable
@@ -500,11 +506,6 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
     		this.ticksInPipe = ticks;
     		return this;
     	}
-    	
-    	public boolean isRemoved()
-		{
-			return isRemoved;
-		}
     	
     	public PipeItem remove()
 		{

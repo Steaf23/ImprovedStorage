@@ -46,4 +46,10 @@ public class StoneGolemScreen extends AbstractContainerScreen<StoneGolemMenu>
 		this.blit(stack, x, y, 0, 0, this.imageWidth, this.imageHeight);
 	}
 
+	@Override
+	protected void renderLabels(PoseStack stack, int mouseX, int mouseY)
+	{
+		this.font.draw(stack, this.title, 8.0f, 6.0f, 0x404040);
+		this.font.draw(stack, this.playerInventoryTitle, 8.0f, 90.f, 0x404040);
+	}
 }

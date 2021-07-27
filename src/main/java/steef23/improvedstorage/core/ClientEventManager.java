@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.ScreenManager;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.world.level.block.RenderShape;
@@ -19,9 +20,11 @@ import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.client.gui.screens.StoneChestScreen;
 import steef23.improvedstorage.client.gui.screens.StoneGolemScreen;
 import steef23.improvedstorage.client.model.entity.StoneGolemModel;
+import steef23.improvedstorage.client.renderer.blockentity.BluestoneWireRenderer;
 import steef23.improvedstorage.client.renderer.blockentity.StoneChestRenderer;
 import steef23.improvedstorage.client.renderer.entity.StoneGolemRenderer;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
+import steef23.improvedstorage.core.init.IMPSBlocks;
 import steef23.improvedstorage.core.init.IMPSEntities;
 import steef23.improvedstorage.core.init.IMPSMenus;
 
@@ -36,10 +39,11 @@ public class ClientEventManager
 		MenuScreens.register(IMPSMenus.STONE_GOLEM.get(), StoneGolemScreen::new);
 
 		//set rendertypes
-//		RenderLayer.setRenderLayer(IMPSBlocks.BLUESTONE_WIRE.get(), RenderType.cutout());
+		ItemBlockRenderTypes.setRenderLayer(IMPSBlocks.BLUESTONE_WIRE.get(), RenderType.cutout());
 
 		// bind TERs
 		BlockEntityRenderers.register(IMPSBlockEntities.STONE_CHEST.get(), StoneChestRenderer::new);
+		BlockEntityRenderers.register(IMPSBlockEntities.BLUESTONE_WIRE.get(), BluestoneWireRenderer::new);
 
 	}
 

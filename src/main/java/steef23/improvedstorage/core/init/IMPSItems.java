@@ -4,7 +4,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemNameBlockItem;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -14,7 +13,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import steef23.improvedstorage.ImprovedStorage;
-import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
+import steef23.improvedstorage.common.world.item.StoneChestItem;
 
 import java.util.Objects;
 
@@ -27,7 +26,7 @@ public class IMPSItems
 	
 	public static final RegistryObject<Item> BLUESTONE_INGOT = ITEMS.register("bluestone_ingot", () ->
 		new Item(new Item.Properties().tab(ImprovedStorage.IMPS_CREATIVE_MODE_TAB)));
-	
+
 	//BlockItems
 	@Mod.EventBusSubscriber(modid = ImprovedStorage.MOD_ID, bus = Bus.MOD)
 	public static class BlockItemRegistry
@@ -51,7 +50,7 @@ public class IMPSItems
 	    	final Item.Properties stoneChestProp = new Item.Properties()
 	    			.tab(ImprovedStorage.IMPS_CREATIVE_MODE_TAB);
 //	    			.setISTER(() -> () -> new StoneChestItemStackRenderer<BlockEntity>(() -> new StoneChestBlockEntity()));
-	    	final BlockItem stoneChest = new BlockItem(IMPSBlocks.STONE_CHEST.get(), stoneChestProp);
+	    	final BlockItem stoneChest = new StoneChestItem(IMPSBlocks.STONE_CHEST.get(), stoneChestProp);
 	    	stoneChest.setRegistryName(Objects.requireNonNull(block.getRegistryName()));
 	    	registry.register(stoneChest);
 	    	

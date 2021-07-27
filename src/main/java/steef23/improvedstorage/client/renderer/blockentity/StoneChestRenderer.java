@@ -14,6 +14,7 @@ import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.DoubleBlockCombiner;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -56,7 +57,7 @@ public class StoneChestRenderer<T extends BlockEntity & LidBlockEntity> implemen
 	        matrixStackIn.mulPose(Vector3f.YP.rotationDegrees(-horizontalAngle));
 	        matrixStackIn.translate(-0.5D, -0.5D, -0.5D);
 	        
-//	        TileEntityMerger.ICallbackWrapper<? extends StoneChestTileEntity> iCallbackWrapper;
+//	        DoubleBlockCombiner.ICallbackWrapper<? extends StoneChestTileEntity> iCallbackWrapper;
 //	        if (worldExists)
 //	        {
 //	        	iCallbackWrapper = stoneChestBlock.getWrapper(blockState, world, blockEntity.getPos(), true);
