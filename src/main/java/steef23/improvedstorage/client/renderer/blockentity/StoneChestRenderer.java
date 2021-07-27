@@ -14,14 +14,17 @@ import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoubleBlockCombiner;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import steef23.improvedstorage.client.model.block.StoneChestTextureModel;
 import steef23.improvedstorage.common.world.level.block.StoneChestBlock;
+import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 
 @OnlyIn(Dist.CLIENT)
@@ -57,26 +60,25 @@ public class StoneChestRenderer<T extends BlockEntity & LidBlockEntity> implemen
 	        matrixStackIn.mulPose(Vector3f.YP.rotationDegrees(-horizontalAngle));
 	        matrixStackIn.translate(-0.5D, -0.5D, -0.5D);
 	        
-//	        DoubleBlockCombiner.ICallbackWrapper<? extends StoneChestTileEntity> iCallbackWrapper;
-//	        if (worldExists)
-//	        {
-//	        	iCallbackWrapper = stoneChestBlock.getWrapper(blockState, world, blockEntity.getPos(), true);
-//	        }
-//	        else
-//	        {
-//	        	iCallbackWrapper = TileEntityMerger.ICallback::func_225537_b_;
-//	        }
-//
-//	        float f1 = iCallbackWrapper.apply(StoneChestBlock.getLid((IChestLid)blockEntity)).get(partialTicks);
-//	        f1 = 1.0F - f1;
-//	        f1 = 1.0F - f1 * f1 * f1;
-//	        int i = iCallbackWrapper.apply(new DualBrightnessCallback<>()).applyAsInt(combinedLightIn);
-//
+	        DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> neighborCombineResult;
+	        if (worldExists)
+	        {
+	        	neighborCombineResult = stoneChestBlock.combine(blockState, world, blockEntity.getBlockPos(), true);
+	        }
+	        else
+	        {
+	        	neighborCombineResult = DoubleBlockCombiner.Combiner::acceptNone;
+	        }
+
+	        float f1 = neighborCombineResult.apply(ChestBlock.opennessCombiner(blockEntity)).get(partialTicks);
+	        f1 = 1.0F - f1;
+	        f1 = 1.0F - f1 * f1 * f1;
+
 	        Material material = new Material(Sheets.CHEST_SHEET, StoneChestTextureModel.TEXTURE);
 	        VertexConsumer iVertexBuilder = material.buffer(bufferIn, RenderType::entityCutout);
 	        // TODO: fix lidAngle by fixing callbackwrapper shit
-	        float lidAngle = 0.4f;
-	        this.chestLid.xRot = -(lidAngle * ((float)Math.PI / 2F));
+	        float lidAngle = blockEntity.getOpenNess(partialTicks);
+	        this.chestLid.xRot = -(f1 * ((float)Math.PI / 2F));
 	        this.chestHandle.xRot = this.chestLid.xRot;
 	        this.chestBase.render(matrixStackIn, iVertexBuilder, combinedLightIn, combinedOverlayIn);
 	        this.chestLid.render(matrixStackIn, iVertexBuilder, combinedLightIn, combinedOverlayIn);

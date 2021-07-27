@@ -1,5 +1,6 @@
 package steef23.improvedstorage.common.world.level.block;
 
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,7 +20,10 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.pattern.BlockInWorld;
 import net.minecraft.world.level.block.state.pattern.BlockPattern;
+import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+import net.minecraft.world.level.block.state.predicate.BlockStatePredicate;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
@@ -30,8 +34,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.fmllegacy.network.NetworkHooks;
+import steef23.improvedstorage.common.world.entity.StoneGolem;
 import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
+import steef23.improvedstorage.core.init.IMPSBlocks;
+import steef23.improvedstorage.core.init.IMPSEntities;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -123,9 +130,7 @@ public class StoneChestBlock extends AbstractChestBlock<StoneChestBlockEntity> i
 	{
 		return RenderShape.ENTITYBLOCK_ANIMATED;
 	}
-	
 
-	
 	@Override
 	public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context)
 	{
@@ -138,27 +143,6 @@ public class StoneChestBlock extends AbstractChestBlock<StoneChestBlockEntity> i
 		builder.add(FACING, WATERLOGGED);
 		super.createBlockStateDefinition(builder);
 	}
-	
-//	public ICallbackWrapper<? extends StoneChestBlockEntity> getWrapper(BlockState blockState, Level worldIn, BlockPos posIn, boolean canBeOpened)
-//	{
-//		BiPredicate<LevelAccessor, BlockPos> biPredicate;
-//		if (canBeOpened)
-//		{
-//			biPredicate = (world, pos) -> false;
-//		}
-//		else
-//		{
-//			biPredicate = StoneChestBlock::isBlocked;
-//		}
-//		return DoubleBlockCombiner.combineWithNeigbour(this.tileEntityTypeSupplier.get(),
-//											   StoneChestBlock::getBlockType,
-//											   StoneChestBlock::getDirectionToAttached,
-//											   FACING,
-//											   blockState,
-//											   worldIn,
-//											   posIn,
-//											   biPredicate);
-//	}
 	
 	private static boolean isBlocked(LevelAccessor iWorld, BlockPos blockPos)
 	{
@@ -194,97 +178,66 @@ public class StoneChestBlock extends AbstractChestBlock<StoneChestBlockEntity> i
     	return false;
     }
 
-//	public static ICallback<StoneChestBlockEntity, Float2FloatFunction> getLid(final LidBlockEntity LidIn)
-//	{
-//		return new ICallback<StoneChestBlockEntity, Float2FloatFunction>() {
-//			public Float2FloatFunction func_225539_a_(StoneChestBlockEntity tileEntity1, steef23.improvedstorage.common.tileentity.StoneChestBlockEntity tileEntity2)
-//			{
-//				return (partialTicks) -> {
-//					return Math.max(tileEntity1.getLidAngle(partialTicks), tileEntity2.getLidAngle(partialTicks));
-//				};
-//			}
-//
-//			public Float2FloatFunction func_225538_a_(StoneChestBlockEntity tileEntity)
-//			{
-//				return tileEntity::getLidAngle;
-//	        }
-//
-//			public Float2FloatFunction func_225537_b_()
-//			{
-//				return tileEntityIn::getLidAngle;
-//			}
-//		};
-//	}
-//
-//	public static TileEntityMerger.Type getMergerType(BlockState blockState)
-//	{
-//		return TileEntityMerger.Type.SINGLE;
-//	}
-	
-	public static Direction getDirectionToAttached(BlockState blockState)
-	{
-		Direction direction = blockState.getValue(FACING);
-		return direction.getCounterClockWise();
-	}
-
 	@Override
-	public DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> combine(BlockState p_53149_, Level p_53150_, BlockPos p_53151_, boolean p_53152_) {
+	public DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> combine(BlockState state, Level level, BlockPos pos, boolean canBeOpened) {
 		return DoubleBlockCombiner.Combiner::acceptNone;
 	}
 
-//	@Override
-//	public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving)
-//	{
-//		float yaw = state.get(FACING).getHorizontalAngle();
-//		if (oldState.getBlock() != state.getBlock())
-//		{
-//			this.trySpawnGolem(worldIn, pos, yaw);
-//	    }
-//	}
-//
-//	private void trySpawnGolem(World worldIn, BlockPos pos, float yaw)
-//	{
-//		PatternHelper blockPatternHelper = this.getStoneGolemPattern().match(worldIn, pos);
-//
-//		if (blockPatternHelper != null)
-//		{
-//			for (int i = 0; i < this.getStoneGolemPattern().getThumbLength(); ++i)
-//			{
-//				CachedBlockInfo cachedBlockInfo = blockPatternHelper.translateOffset(0,  i, 0);
-//				worldIn.setBlockState(cachedBlockInfo.getPos(), Blocks.AIR.getDefaultState(), 2);
-//				worldIn.playEvent(2001, cachedBlockInfo.getPos(), Block.getStateId(cachedBlockInfo.getBlockState()));
-//			}
-//
-//			StoneGolemEntity stoneGolemEntity = IMPSEntities.STONE_GOLEM_ENTITY.get().create(worldIn);
-//			BlockPos blockpos = blockPatternHelper.translateOffset(0, 1, 0).getPos();
-//			stoneGolemEntity.setLocationAndAngles((double)blockpos.getX() + 0.5D,
-//												  (double)blockpos.getY() + 0.05D,
-//												  (double)blockpos.getZ() + 0.5D,
-//												  yaw,
-//												  0.0f);
-//			worldIn.addEntity(stoneGolemEntity);
-//
-//			for(ServerPlayerEntity serverplayerentity : worldIn.getEntitiesWithinAABB(ServerPlayerEntity.class, stoneGolemEntity.getBoundingBox().grow(5.0D))) {
-//	            CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayerentity, stoneGolemEntity);
-//	         	}
-//
-//	        for(int l = 0; l < this.getStoneGolemPattern().getThumbLength(); ++l) {
-//	            CachedBlockInfo cachedBlockInfo1 = blockPatternHelper.translateOffset(0, l, 0);
-//	            worldIn.func_230547_a_(cachedBlockInfo1.getPos(), Blocks.AIR);
-//	        }
-//		}
-//	}
-//
-//	private BlockPattern getStoneGolemPattern()
-//	{
-//	      if (this.stoneGolemPattern == null)
-//	      {
-//	         this.stoneGolemPattern = BlockPatternBuilder.start().aisle("^", "#").where('^', CachedBlockInfo.hasState(BlockStateMatcher.forBlock(IMPSBlocks.STONE_CHEST.get()))).where('#', CachedBlockInfo.hasState(BlockStateMatcher.forBlock(Blocks.CHISELED_STONE_BRICKS))).build();
-//	      }
-//
-//	      return this.stoneGolemPattern;
-//	}
-//
+	@Override
+	public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving)
+	{
+		float yaw = state.getValue(FACING).toYRot();
+		if (oldState.getBlock() != state.getBlock())
+		{
+			this.trySpawnGolem(level, pos, yaw);
+	    }
+	}
+
+	private void trySpawnGolem(Level level, BlockPos pos, float yaw)
+	{
+		BlockPattern.BlockPatternMatch patternMatch = this.getStoneGolemPattern().find(level, pos);
+
+		if (patternMatch != null)
+		{
+			for (int i = 0; i < this.getStoneGolemPattern().getHeight(); ++i)
+			{
+				BlockInWorld blockInWorld = patternMatch.getBlock(0,  i, 0);
+				level.setBlock(blockInWorld.getPos(), Blocks.AIR.defaultBlockState(), 2);
+				level.levelEvent(2001, blockInWorld.getPos(), Block.getId(blockInWorld.getState()));
+			}
+
+			StoneGolem golem = IMPSEntities.STONE_GOLEM.get().create(level);
+			BlockPos blockpos = patternMatch.getBlock(0, 1, 0).getPos();
+
+			assert golem != null;
+			golem.moveTo((double)blockpos.getX() + 0.5D,
+												  (double)blockpos.getY() + 0.05D,
+												  (double)blockpos.getZ() + 0.5D,
+												  0.0f,
+												  yaw);
+			level.addFreshEntity(golem);
+
+			for(ServerPlayer serverPlayer : level.getEntitiesOfClass(ServerPlayer.class, golem.getBoundingBox().inflate(5.0D))) {
+	            CriteriaTriggers.SUMMONED_ENTITY.trigger(serverPlayer, golem);
+	         	}
+
+	        for(int l = 0; l < this.getStoneGolemPattern().getHeight(); ++l) {
+	            BlockInWorld blockInWorld = patternMatch.getBlock(0, l, 0);
+	            level.blockUpdated(blockInWorld.getPos(), Blocks.AIR);
+	        }
+		}
+	}
+
+	private BlockPattern getStoneGolemPattern()
+	{
+	      if (this.stoneGolemPattern == null)
+	      {
+	         this.stoneGolemPattern = BlockPatternBuilder.start().aisle("^", "#").where('^', BlockInWorld.hasState(BlockStatePredicate.forBlock(IMPSBlocks.STONE_CHEST.get()))).where('#', BlockInWorld.hasState(BlockStatePredicate.forBlock(Blocks.CHISELED_STONE_BRICKS))).build();
+	      }
+
+	      return this.stoneGolemPattern;
+	}
+
 //	@Override
 //	public boolean canCreatureSpawn(BlockState state, IBlockReader world, BlockPos pos, PlacementType type,
 //			EntityType<?> entityType)

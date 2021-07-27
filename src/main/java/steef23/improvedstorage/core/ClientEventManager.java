@@ -7,6 +7,7 @@ import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.renderer.blockentity.ChestRenderer;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -42,7 +43,7 @@ public class ClientEventManager
 		ItemBlockRenderTypes.setRenderLayer(IMPSBlocks.BLUESTONE_WIRE.get(), RenderType.cutout());
 
 		// bind TERs
-		BlockEntityRenderers.register(IMPSBlockEntities.STONE_CHEST.get(), StoneChestRenderer::new);
+		BlockEntityRenderers.register(IMPSBlockEntities.STONE_CHEST.get(), ChestRenderer::new);
 		BlockEntityRenderers.register(IMPSBlockEntities.BLUESTONE_WIRE.get(), BluestoneWireRenderer::new);
 
 	}

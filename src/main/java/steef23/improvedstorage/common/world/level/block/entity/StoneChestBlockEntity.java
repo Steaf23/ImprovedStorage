@@ -17,6 +17,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
@@ -28,6 +29,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import steef23.improvedstorage.common.world.inventory.StoneChestMenu;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
+import steef23.improvedstorage.core.init.IMPSBlocks;
 import steef23.improvedstorage.core.init.IMPSMenus;
 
 public class StoneChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity
@@ -50,9 +52,9 @@ public class StoneChestBlockEntity extends RandomizableContainerBlockEntity impl
 		}
 
 		@Override
-		protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int p_155466_, int p_155467_)
+		protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int p_155466_, int id)
 		{
-
+			level.blockEvent(pos, IMPSBlocks.STONE_CHEST.get(), 1, id);
 		}
 
 		@Override
@@ -199,5 +201,10 @@ public class StoneChestBlockEntity extends RandomizableContainerBlockEntity impl
 	public float getOpenNess(float partialTicks)
 	{
 		return Mth.lerp(partialTicks, this.prevLidAngle, this.lidAngle);
+	}
+
+	protected void signalOpenCount(Level level, BlockPos pos, BlockState state, int p_155336_, int id) {
+		Block block = state.getBlock();
+		level.blockEvent(pos, block, 1, id);
 	}
 }
