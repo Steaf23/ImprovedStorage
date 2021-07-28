@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
@@ -14,6 +15,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.VanillaInventoryCodeHooks;
@@ -25,7 +27,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Optional;
 
-public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements BlockEntityTicker<AbstractItemPipeBlockEntity>
+public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 {
 	public int cooldownTimer;
 	public ArrayList<PipeItem> items;
@@ -44,54 +46,53 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
 
 	public abstract int getSpeed();
 
-	@Override
-	public void tick(Level level, BlockPos blockPos, BlockState blockState, AbstractItemPipeBlockEntity blockEntity)
+	public static void tick(Level level, BlockPos blockPos, BlockState blockState, AbstractItemPipeBlockEntity blockEntity)
 	{
 		assert level != null;
 		if (!level.isClientSide)
 		{
 			//INSERT INTO OTHER INVENTORIES
-			for (PipeItem item : this.items)
+			for (PipeItem item : blockEntity.items)
 			{
-				if (item.getTicksInPipe() >= this.getSpeed() && !item.isRemoved)
+				if (item.getTicksInPipe() >= blockEntity.getSpeed() && !item.isRemoved)
 				{
 					Direction target = item.getTarget();
-					switch (this.sendItem(item, target))
+					switch (blockEntity.sendItem(item, target))
 					{
 						case SUCCESS, PASS -> {
 							item = item.remove();
-							this.needsUpdate = true;
+							blockEntity.needsUpdate = true;
 						}
-						default -> resetTargets();
+						default -> resetTargets(blockEntity);
 					}
 				}
 			}
 
 			//EXTRACT FROM OTHER INVENTORIES
-			this.cooldownTimer++;
-			if (this.cooldownTimer >= this.getSpeed())
+			blockEntity.cooldownTimer++;
+			if (blockEntity.cooldownTimer >= blockEntity.getSpeed())
 			{
-				this.cooldownTimer = 0;
+				blockEntity.cooldownTimer = 0;
 				for (Direction face : Direction.values())
 				{
-					if (this.isSideConnected(face))
+					if (blockEntity.isSideConnected(face))
 					{
 						//if items have been sent out OR came in
-						this.needsUpdate |= this.pullFromInventory(face);
+						blockEntity.needsUpdate |= blockEntity.pullFromInventory(face);
 					}
 				}
 			}
 
-			this.items.removeIf(item -> item.isRemoved);
+			blockEntity.items.removeIf(item -> item.isRemoved);
 
-			if (needsUpdate)
+			if (blockEntity.needsUpdate)
 			{
-				needsUpdate = false;
-				this.setChanged();
+				blockEntity.needsUpdate = false;
+				blockEntity.setChanged();
 			}
 		}
 
-		for (PipeItem item : this.items)
+		for (PipeItem item : blockEntity.items)
 		{
 			item.tick();
 		}
@@ -247,11 +248,11 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
 		return null;
 	}
 
-	public void resetTargets()
+	public static void resetTargets(AbstractItemPipeBlockEntity te)
 	{
-		for (PipeItem item : this.items)
+		for (PipeItem item : te.items)
 		{
-			item.target = this.getTargetFace(item.source);
+			item.target = te.getTargetFace(item.source);
 		}
 	}
 
@@ -303,12 +304,14 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
 		return nbt;
 	}
 
+
+
 	@Override
 	public void setChanged()
 	{
 		assert this.level != null;
 		super.setChanged();
-		this.level.blockUpdated(this.getBlockPos(), this.getBlockState().getBlock());
+		this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), Constants.BlockFlags.BLOCK_UPDATE);
 	}
 
 	@Nullable
@@ -324,7 +327,19 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity implements
     {
         return this.serializeNBT();
     }
-    
+
+	@Override
+	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt)
+	{
+		handleUpdateTag(pkt.getTag());
+	}
+
+	@Override
+	public void handleUpdateTag(CompoundTag tag)
+	{
+		this.deserializeNBT(tag);
+	}
+
 	/* ---------------------------------------------
 	 * INVENTORY INTERFACING
 	 * ---------------------------------------------

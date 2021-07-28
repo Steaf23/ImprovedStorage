@@ -11,7 +11,7 @@ import steef23.improvedstorage.core.init.IMPSBlockEntities;
 
 public class BluestoneWireBlockEntity extends AbstractItemPipeBlockEntity
 {
-	public static final int SPEED = 2;
+	public static final int SPEED = 20;
 	private boolean renderDebug = false;
 	
 	protected BluestoneWireBlockEntity(BlockEntityType<?> tileEntityTypeIn, BlockPos pos, BlockState state)

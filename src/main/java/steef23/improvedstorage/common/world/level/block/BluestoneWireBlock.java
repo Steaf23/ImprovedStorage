@@ -16,6 +16,8 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -368,7 +370,7 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     	}
     }
 
-    private void updateNeighborsStateChange(Level worldIn, BlockPos pos)
+	private void updateNeighborsStateChange(Level worldIn, BlockPos pos)
     {
     	for(Direction direction1 : Direction.Plane.HORIZONTAL)
 		{
@@ -515,4 +517,13 @@ public class BluestoneWireBlock extends Block implements EntityBlock
    	{
    		return IMPSBlockEntities.BLUESTONE_WIRE.get().create(pos, state);
    	}
+
+	@Nullable
+	@Override
+	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level levelIn, BlockState state, BlockEntityType<T> entityType)
+	{
+		return (level, blockPos, blockState, be) -> {
+			BluestoneWireBlockEntity.tick(level, blockPos, blockState, (BluestoneWireBlockEntity)be);
+		};
+	}
 }

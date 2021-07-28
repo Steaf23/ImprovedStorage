@@ -17,7 +17,6 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import steef23.improvedstorage.common.world.level.block.entity.AbstractItemPipeBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
 
-@OnlyIn(Dist.CLIENT)
 public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implements BlockEntityRenderer<T>
 {
 	public BluestoneWireRenderer(BlockEntityRendererProvider.Context renderContext)
@@ -30,7 +29,7 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 	{
 		matrixStackIn.pushPose();
 
-		if (!wireTE.getRenderDebug())
+		if (wireTE.getRenderDebug())
 		{
 			renderDebugOverlay(wireTE, partialTicks, matrixStackIn, bufferIn, combinedLightIn, combinedOverlayIn);
 		}

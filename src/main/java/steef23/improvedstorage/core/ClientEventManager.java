@@ -1,22 +1,15 @@
 package steef23.improvedstorage.core;
 
-import com.mojang.blaze3d.platform.ScreenManager;
-import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
-import net.minecraft.client.renderer.blockentity.ChestRenderer;
-import net.minecraft.world.level.block.RenderShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fmlclient.registry.ClientRegistry;
-import org.apache.http.conn.routing.RouteInfo;
 import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.client.gui.screens.StoneChestScreen;
 import steef23.improvedstorage.client.gui.screens.StoneGolemScreen;
@@ -43,7 +36,7 @@ public class ClientEventManager
 		ItemBlockRenderTypes.setRenderLayer(IMPSBlocks.BLUESTONE_WIRE.get(), RenderType.cutout());
 
 		// bind TERs
-		BlockEntityRenderers.register(IMPSBlockEntities.STONE_CHEST.get(), ChestRenderer::new);
+		BlockEntityRenderers.register(IMPSBlockEntities.STONE_CHEST.get(), StoneChestRenderer::new);
 		BlockEntityRenderers.register(IMPSBlockEntities.BLUESTONE_WIRE.get(), BluestoneWireRenderer::new);
 
 	}

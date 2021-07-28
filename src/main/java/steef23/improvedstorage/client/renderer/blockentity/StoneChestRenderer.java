@@ -27,7 +27,6 @@ import steef23.improvedstorage.common.world.level.block.StoneChestBlock;
 import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 
-@OnlyIn(Dist.CLIENT)
 public class StoneChestRenderer<T extends BlockEntity & LidBlockEntity> implements BlockEntityRenderer<T>
 {
 	private final ModelPart chestBase;
