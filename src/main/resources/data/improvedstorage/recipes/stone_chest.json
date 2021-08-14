@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "iii",
+    "ixi",
+    "iii"
+  ],
+  "key": {
+    "i": {
+      "tag": "minecraft:stone_crafting_materials"
+    },
+    "x": {
+      "item": "minecraft:chest"
+    }
+  },
+  "result": {
+    "item": "improvedstorage:stone_chest"
+  }
+}

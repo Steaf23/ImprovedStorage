@@ -101,7 +101,10 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	public InteractionResult sendItem(PipeItem item, Direction outgoingFace)
 	{
 		assert this.level != null;
-		BlockEntity te = this.level.getBlockEntity(this.getBlockPos().relative(outgoingFace));
+		BlockPos targetPos = this.getBlockPos().relative(outgoingFace);
+		BlockState targetBlockState = this.level.getBlockState(targetPos);
+
+		BlockEntity te = this.level.getBlockEntity(targetPos);
 		if (te != null)
 		{
 			if (!(te instanceof AbstractItemPipeBlockEntity))
@@ -135,6 +138,13 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 					}
 					return InteractionResult.FAIL;
 				}
+				//spit out item if target is set to a "NONE" face and it isn't blocked\
+				//if its not
+				if (!(targetBlockState.isFaceSturdy(this.level, this.getBlockPos(), outgoingFace.getOpposite()) && canBeBlocked()))
+				{
+					this.dropItem(item, null);
+					return InteractionResult.SUCCESS;
+				}
 				return InteractionResult.FAIL;
 			}
 			else
@@ -144,15 +154,6 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 				((AbstractItemPipeBlockEntity)te).receiveItem(item.getCopy());
 				return InteractionResult.PASS;
 			}
-		}
-
-		//spit out item if target is set to a "NONE" face and it isn't blocked
-		BlockState state = this.level.getBlockState(this.getBlockPos().relative(outgoingFace));
-		//if its not 
-		if (!(state.isFaceSturdy(this.level, this.getBlockPos(), outgoingFace.getOpposite()) && canBeBlocked()))
-		{
-			this.dropItem(item, null);
-			return InteractionResult.SUCCESS;
 		}
 		return InteractionResult.FAIL;
 	}
@@ -206,7 +207,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 
 	/*
 	 * Direction priority for target selection (highest to lowest): Clockwise from source in order D-(S-W-N-E)-U.
-	 * Override in subclass to set target to be spat out if desired by setting target to a BluestoneSide.NONE face.
+	 * Override in subclass to set target per pipe type
 	 */
 	public Direction getTargetFace(Direction source)
 	{

@@ -7,7 +7,10 @@ import net.minecraftforge.registries.ForgeRegistries;
 import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneTableBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
+import steef23.improvedstorage.common.world.level.block.entity.KilnBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
+
+import javax.imageio.spi.RegisterableService;
 
 public class IMPSBlockEntities
 {
@@ -24,4 +27,8 @@ public class IMPSBlockEntities
 	public static final RegistryObject<BlockEntityType<BluestoneWireBlockEntity>> BLUESTONE_WIRE = BLOCK_ENTITY_TYPES
 			.register("bluestone_wire", () -> BlockEntityType.Builder
 					.of(BluestoneWireBlockEntity::new, IMPSBlocks.BLUESTONE_WIRE.get()).build(null));
+
+	public static final RegistryObject<BlockEntityType<KilnBlockEntity>> KILN = BLOCK_ENTITY_TYPES
+			.register("kiln", () -> BlockEntityType.Builder
+					.of(KilnBlockEntity::new, IMPSBlocks.KILN.get()).build(null));
 }

@@ -25,12 +25,13 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import steef23.improvedstorage.ImprovedStorage;
+import org.apache.logging.log4j.core.pattern.AbstractStyleNameConverter;
 import steef23.improvedstorage.common.world.level.block.entity.AbstractItemPipeBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
 import steef23.improvedstorage.core.init.IMPSBlocks;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Map;
@@ -42,8 +43,7 @@ public class BluestoneWireBlock extends Block implements EntityBlock
 	public static final EnumProperty<BluestoneSide> EAST = EnumProperty.create("east", BluestoneSide.class);
 	public static final EnumProperty<BluestoneSide> SOUTH = EnumProperty.create("south", BluestoneSide.class);
 	public static final EnumProperty<BluestoneSide> WEST = EnumProperty.create("west", BluestoneSide.class);
-	//public static final IntegerProperty POWER = BlockStateProperties.POWER_0_15;
-	public static final Map<Direction, EnumProperty<BluestoneSide>> PROPERTY_BY_DIRECTION = Maps.newEnumMap(ImmutableMap.of(Direction.NORTH, NORTH,
+	public static final Map<Direction, EnumProperty<BluestoneSide>> DIRECTION_TO_SIDE = Maps.newEnumMap(ImmutableMap.of(Direction.NORTH, NORTH,
 		   																												  Direction.EAST, EAST,
 		   																												  Direction.SOUTH, SOUTH,
 		   																												  Direction.WEST, WEST));
@@ -75,16 +75,23 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     		  									   .setValue(SOUTH, BluestoneSide.SIDE)
     		  									   .setValue(WEST, BluestoneSide.SIDE);
     	this.getStateDefinition().getPossibleStates().forEach((state) -> {
-    		this.SHAPES_CACHE.put(state, this.getShapeForState(state));
+    		this.SHAPES_CACHE.put(state, this.calculateShape(state));
     	});
     }
 
-    private VoxelShape getShapeForState(BlockState state)
+	@Override
+	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
+	{
+		builder.add(NORTH, EAST, SOUTH, WEST);
+	}
+
+    private VoxelShape calculateShape(BlockState state)
     {
     	VoxelShape voxelShape = BASE_SHAPE;
+
     	for(Direction direction : Direction.Plane.HORIZONTAL)
     	{
-    		BluestoneSide bluestoneSide = state.getValue(PROPERTY_BY_DIRECTION.get(direction));
+    		BluestoneSide bluestoneSide = getSideValue(direction, state);
             if (bluestoneSide == BluestoneSide.SIDE)
             {
             	voxelShape = Shapes.or(voxelShape, SHAPES_FLOOR.get(direction));
@@ -97,85 +104,136 @@ public class BluestoneWireBlock extends Block implements EntityBlock
          return voxelShape;
     }
 
+    //DONE
     public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context)
     {
     	return this.SHAPES_CACHE.get(state);
     }
 
+    //DONE
     public BlockState getStateForPlacement(BlockPlaceContext context)
    	{
-    	return this.getUpdatedState(context.getLevel(), this.crossState, context.getClickedPos());
+   		BlockState state = updateState(this.defaultBlockState(), context.getClickedPos(), context.getLevel());
+   		state = setEnds(state);
+   		return state;
    	}
 
-    private BlockState getUpdatedState(BlockGetter reader, BlockState state, BlockPos pos)
-   	{
-    	boolean areAllSidesInvalid = areAllSidesInvalid(state);
-    	state = this.getMissingConnections(reader, this.defaultBlockState(), pos);
-		if (!areAllSidesInvalid || !areAllSidesInvalid(state))
-		{
-			boolean isConnectedToNorth = state.getValue(NORTH).isConnected();
-			boolean isConnectedToEast = state.getValue(EAST).isConnected();
-			boolean isConnectedToSouth = state.getValue(SOUTH).isConnected();
-			boolean isConnectedToWest = state.getValue(WEST).isConnected();
-			if (isConnectedToNorth)
-			{
-				state = state.setValue(NORTH, BluestoneSide.SIDE);
-			}
-			else
-				if (isConnectedToSouth && !isConnectedToEast && !isConnectedToWest)
-				{
-					state = state.setValue(NORTH, BluestoneSide.END);
-				}
-
-			if (isConnectedToEast)
-			{
-				state = state.setValue(EAST, BluestoneSide.SIDE);
-			}
-			else
-				if (isConnectedToWest && !isConnectedToNorth && !isConnectedToSouth)
-				{
-					state = state.setValue(EAST, BluestoneSide.END);
-				}
-
-			if (isConnectedToSouth)
-			{
-				state = state.setValue(SOUTH, BluestoneSide.SIDE);
-			}
-			else
-				if (isConnectedToNorth && !isConnectedToEast && !isConnectedToWest)
-				{
-					state = state.setValue(SOUTH, BluestoneSide.END);
-				}
-
-			if (isConnectedToWest)
-			{
-				state = state.setValue(WEST, BluestoneSide.SIDE);
-			}
-			else
-				if (isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth)
-				{
-					state = state.setValue(WEST, BluestoneSide.END);
-				}
-
-		}
-		return state;
-
+   	private BlockState updateState(BlockState oldState, BlockPos pos, Level level)
+	{
+		return getUpdatedSides(level, oldState, pos);
 	}
 
-    private BlockState getMissingConnections(BlockGetter reader, BlockState state, BlockPos pos)
-    {
-    	boolean nonNormalCubeAbove = !reader.getBlockState(pos.above()).isRedstoneConductor(reader, pos);
+//    private BlockState getNewState(BlockGetter reader, BlockState state, BlockPos pos)
+//   	{
+//    	boolean isNotConnectedOld = isNotConnected(state);
+//    	BlockState updatedState = this.getUpdatedSides(reader, this.defaultBlockState(), pos);
+//		if (!isNotConnectedOld || !isNotConnected(updatedState))
+//		{
+//			boolean isConnectedToNorth = updatedState.getValue(NORTH).isConnected();
+//			boolean isConnectedToEast = updatedState.getValue(EAST).isConnected();
+//			boolean isConnectedToSouth = updatedState.getValue(SOUTH).isConnected();
+//			boolean isConnectedToWest = updatedState.getValue(WEST).isConnected();
+//			if (isConnectedToNorth)
+//			{
+//				updatedState = updatedState.setValue(NORTH, BluestoneSide.SIDE);
+//			}
+//			else
+//				if (isConnectedToSouth && !isConnectedToEast && !isConnectedToWest)
+//				{
+//					updatedState = updatedState.setValue(NORTH, BluestoneSide.END);
+//				}
+//
+//			if (isConnectedToEast)
+//			{
+//				updatedState = updatedState.setValue(EAST, BluestoneSide.SIDE);
+//			}
+//			else
+//				if (isConnectedToWest && !isConnectedToNorth && !isConnectedToSouth)
+//				{
+//					updatedState = updatedState.setValue(EAST, BluestoneSide.END);
+//				}
+//
+//			if (isConnectedToSouth)
+//			{
+//				updatedState = updatedState.setValue(SOUTH, BluestoneSide.SIDE);
+//			}
+//			else
+//				if (isConnectedToNorth && !isConnectedToEast && !isConnectedToWest)
+//				{
+//					updatedState = updatedState.setValue(SOUTH, BluestoneSide.END);
+//				}
+//
+//			if (isConnectedToWest)
+//			{
+//				updatedState = updatedState.setValue(WEST, BluestoneSide.SIDE);
+//			}
+//			else
+//				if (isConnectedToEast && !isConnectedToNorth && !isConnectedToSouth)
+//				{
+//					updatedState = updatedState.setValue(WEST, BluestoneSide.END);
+//				}
+//
+//		}
+//		return updatedState;
+//
+//	}
 
+	//DONE
+    private BlockState getUpdatedSides(BlockGetter reader, BlockState state, BlockPos pos)
+    {
+		BlockState newState = state;
         for(Direction direction : Direction.Plane.HORIZONTAL)
         {
-        	if (!state.getValue(PROPERTY_BY_DIRECTION.get(direction)).isConnected())
-        	{
-        		BluestoneSide bluestoneSide = this.recalculateSide(reader, pos, direction, nonNormalCubeAbove);
-        		state = state.setValue(PROPERTY_BY_DIRECTION.get(direction), bluestoneSide);
-        	}
+        	BluestoneSide newSideValue = getNewSideDefinition(reader, pos, direction);
+			newState = setSideValue(direction, newState, newSideValue);
+
+			updateNeighborShape(direction, pos, (LevelAccessor) reader);
         }
-        return state;
+        return newState;
     }
+
+    private void updateNeighborShape(Direction toDirection, BlockPos pos, LevelAccessor level)
+	{
+		BlockPos targetPos = pos.relative(toDirection);
+		BlockState targetState = level.getBlockState(targetPos);
+		Direction targetFaceToUpdate = toDirection.getOpposite();
+
+		if (!targetState.is(Blocks.OBSERVER))
+		{
+			targetState.updateShape(targetFaceToUpdate, level.getBlockState(pos), (LevelAccessor)level, pos.relative(toDirection), pos);
+		}
+	}
+
+	private BluestoneSide getNewSideDefinition(BlockGetter reader, BlockPos pos, Direction direction)
+	{
+		BlockPos targetPos = pos.relative(direction);
+		BlockState targetState = reader.getBlockState(targetPos);
+
+		boolean shouldBreak = !this.canSurvive(reader.getBlockState(pos), (LevelReader)reader, pos);
+		boolean connect = canConnectTo(reader.getBlockState(targetPos), reader, targetPos, direction);
+		if (!shouldBreak && connect)
+		{
+//			if (targetState.isFaceSturdy(reader, targetPos, direction.getOpposite()))
+//			{
+//				return BluestoneSide.UP;
+//			}
+
+			if (targetState.getBlock() instanceof BluestoneTableBlock)
+			{
+				return BluestoneSide.END;
+			}
+
+			return BluestoneSide.SIDE;
+		}
+
+		return BluestoneSide.NONE;
+
+
+//		BlockState wireState = reader.getBlockState(pos);
+//		return !canConnectTo(targetState, reader, targetPos, direction) && (targetState.isRedstoneConductor(reader, targetPos) ||
+//				!canConnectTo(reader.getBlockState(targetPos.below()), reader, targetPos.below(), null)) ?
+//				this.getEndConnection(direction, wireState) ? BluestoneSide.END : BluestoneSide.NONE : BluestoneSide.SIDE;
+	}
 
     /**
      * Update the provided state given the provided neighbor facing and neighbor state, returning a new state.
@@ -183,26 +241,15 @@ public class BluestoneWireBlock extends Block implements EntityBlock
      * returns its solidified counterpart.
      * Note that this method should ideally consider only the specific face passed in.
      */
-    public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, LevelAccessor worldIn, BlockPos currentPos, BlockPos facingPos)
+    public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, LevelAccessor levelAccessor, BlockPos currentPos, BlockPos facingPos)
     {
-    	if (facing == Direction.DOWN)
-     	{
-    		return stateIn;
-     	}
-    	else if (facing == Direction.UP)
-     	{
-    		return this.getUpdatedState(worldIn, stateIn, currentPos);
-     	}
-    	else
-    	{
-    		BluestoneSide bluestoneSide = this.getSide(worldIn, currentPos, facing);
-    		return bluestoneSide.isConnected() == stateIn.getValue(PROPERTY_BY_DIRECTION.get(facing)).isConnected() &&
-    				!areAllSidesValid(stateIn) ? stateIn.setValue(PROPERTY_BY_DIRECTION.get(facing), bluestoneSide)
-    						: this.getUpdatedState(worldIn, this.crossState.setValue(PROPERTY_BY_DIRECTION.get(facing), bluestoneSide), currentPos);
-    	}
+    	BlockState state = setSideValue(facing, stateIn, getNewSideDefinition(levelAccessor, currentPos, facing));
+    	state = setEnds(state);
+		return state;
     }
 
-    private static boolean areAllSidesValid(BlockState state)
+    //DONE
+    private static boolean isFullyConnected(BlockState state)
     {
     	return state.getValue(NORTH).isConnected() &&
     			state.getValue(SOUTH).isConnected() &&
@@ -210,7 +257,8 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     			state.getValue(WEST).isConnected();
     }
 
-    private static boolean areAllSidesInvalid(BlockState state)
+    //DONE
+    private static boolean isNotConnected(BlockState state)
     {
     	return !state.getValue(NORTH).isConnected() &&
     			!state.getValue(SOUTH).isConnected() &&
@@ -218,76 +266,34 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     			!state.getValue(WEST).isConnected();
     }
 
-    public static ArrayList<Direction> getvalidSides(BlockState state)
-    {
-    	ArrayList<Direction> sides = new ArrayList<>();
-    	PROPERTY_BY_DIRECTION.forEach((direction, bluestoneSide) ->
-    	{
-    		if (state.getValue(bluestoneSide).isConnected())
-    		{
-        		sides.add(direction);
-    		}
-    	});
-    	return sides;
-    }
-
-    public void updateDiagonalNeighbors(BlockState state, LevelAccessor worldIn, BlockPos pos, int flags)
-    {
-    	BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
-		for(Direction direction : Direction.Plane.HORIZONTAL)
-     	{
-			BluestoneSide bluestoneSide = state.getValue(PROPERTY_BY_DIRECTION.get(direction));
-			if (bluestoneSide != BluestoneSide.NONE && worldIn.getBlockState(mutableBlockPos.set(pos).move(direction)).getBlock() != this)
-			{
-				mutableBlockPos.move(Direction.DOWN);
-				BlockState blockstate = worldIn.getBlockState(mutableBlockPos);
-				if (blockstate.getBlock() != Blocks.OBSERVER)
-				{
-					BlockPos blockpos = mutableBlockPos.relative(direction.getOpposite());
-					BlockState blockstate1 = blockstate.updateShape(direction.getOpposite(), worldIn.getBlockState(blockpos), worldIn, mutableBlockPos, blockpos);
-					updateOrDestroy(blockstate, blockstate1, worldIn, mutableBlockPos, flags);
-				}
-
-				mutableBlockPos.set(pos).move(direction).move(Direction.UP);
-				BlockState blockstate3 = worldIn.getBlockState(mutableBlockPos);
-				if (blockstate3.getBlock() != Blocks.OBSERVER)
-				{
-					BlockPos blockpos1 = mutableBlockPos.relative(direction.getOpposite());
-					BlockState blockstate2 = blockstate3.updateShape(direction.getOpposite(), worldIn.getBlockState(blockpos1), worldIn, mutableBlockPos, blockpos1);
-					updateOrDestroy(blockstate3, blockstate2, worldIn, mutableBlockPos, flags);
-				}
-			}
-    	}
-    }
-
-    public BluestoneSide getSide(BlockGetter worldIn, BlockPos pos, Direction face)
-    {
-    	return this.recalculateSide(worldIn, pos, face, !worldIn.getBlockState(pos.above()).isRedstoneConductor(worldIn, pos));
-    }
-
-    private BluestoneSide recalculateSide(BlockGetter reader, BlockPos pos, Direction direction, boolean nonNormalCubeAbove)
-    {
-    	BlockPos blockpos = pos.relative(direction);
-        BlockState blockstate = reader.getBlockState(blockpos);
-        if (nonNormalCubeAbove)
-        {
-        	boolean flag = this.canSurviveOn(reader, blockpos, blockstate);
-        	if (flag && canConnectTo(reader.getBlockState(blockpos.above()), reader, blockpos.above(), null) )
-        	{
-        		if (blockstate.isFaceSturdy(reader, blockpos, direction.getOpposite()))
-        		{
-        			return BluestoneSide.UP;
-        		}
-
-        		return BluestoneSide.SIDE;
-        	}
-        }
-
-        BlockState wireState = reader.getBlockState(pos);
-        return !canConnectTo(blockstate, reader, blockpos, direction) && (blockstate.isRedstoneConductor(reader, blockpos) ||
-        		!canConnectTo(reader.getBlockState(blockpos.below()), reader, blockpos.below(), null)) ?
-        				this.getEndConnection(direction, wireState) ? BluestoneSide.END : BluestoneSide.NONE : BluestoneSide.SIDE;
-    }
+//    public void updateDiagonalNeighbors(BlockState state, LevelAccessor worldIn, BlockPos pos, int flags)
+//    {
+//    	BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+//		for(Direction direction : Direction.Plane.HORIZONTAL)
+//     	{
+//			BluestoneSide bluestoneSide = getSideValue(direction, state);
+//			if (bluestoneSide != BluestoneSide.NONE && worldIn.getBlockState(mutableBlockPos.set(pos).move(direction)).getBlock() != this)
+//			{
+//				mutableBlockPos.move(Direction.DOWN);
+//				BlockState blockstate = worldIn.getBlockState(mutableBlockPos);
+//				if (blockstate.getBlock() != Blocks.OBSERVER)
+//				{
+//					BlockPos blockpos = mutableBlockPos.relative(direction.getOpposite());
+//					BlockState blockstate1 = blockstate.updateShape(direction.getOpposite(), worldIn.getBlockState(blockpos), worldIn, mutableBlockPos, blockpos);
+//					updateOrDestroy(blockstate, blockstate1, worldIn, mutableBlockPos, flags);
+//				}
+//
+//				mutableBlockPos.set(pos).move(direction).move(Direction.UP);
+//				BlockState blockstate3 = worldIn.getBlockState(mutableBlockPos);
+//				if (blockstate3.getBlock() != Blocks.OBSERVER)
+//				{
+//					BlockPos blockpos1 = mutableBlockPos.relative(direction.getOpposite());
+//					BlockState blockstate2 = blockstate3.updateShape(direction.getOpposite(), worldIn.getBlockState(blockpos1), worldIn, mutableBlockPos, blockpos1);
+//					updateOrDestroy(blockstate3, blockstate2, worldIn, mutableBlockPos, flags);
+//				}
+//			}
+//    	}
+//    }
 
     public boolean canSurvive(BlockState state, LevelReader worldIn, BlockPos pos)
     {
@@ -296,27 +302,9 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     	return this.canSurviveOn(worldIn, blockpos, blockstate);
     }
 
-    //TODO CWASHY WASHY
-    public boolean getEndConnection(Direction face, BlockState state)
-    {
-    	try
-    	{
-			boolean isConnectedToThis = state.getValue(PROPERTY_BY_DIRECTION.get(face)).isConnected();
-			boolean isConnectedToOpposite = state.getValue(PROPERTY_BY_DIRECTION.get(face.getOpposite())).isConnected();
-			boolean isConnectedToLeft = state.getValue(PROPERTY_BY_DIRECTION.get(face.getClockWise())).isConnected();
-			boolean isConnectedToRight = state.getValue(PROPERTY_BY_DIRECTION.get(face.getCounterClockWise())).isConnected();
-
-			return isConnectedToThis && !isConnectedToOpposite && !isConnectedToLeft && !isConnectedToRight;
-		}
-    	catch(IllegalArgumentException e)
-    	{
-    		return false;
-    	}
-    }
-
     private boolean canSurviveOn(BlockGetter reader, BlockPos pos, BlockState state)
     {
-        return state.isFaceSturdy(reader, pos, Direction.UP) || state.is(Blocks.HOPPER);
+        return state.isFaceSturdy(reader, pos, Direction.UP);
     }
 
     /**
@@ -401,16 +389,16 @@ public class BluestoneWireBlock extends Block implements EntityBlock
     	}
     }
 
-   	public static boolean canConnectTo(BlockState blockState, BlockGetter world, BlockPos pos, @Nullable Direction side)
+   	public static boolean canConnectTo(BlockState blockState, BlockGetter world, BlockPos pos, @Nonnull Direction side)
    	{
 	   	Block block = blockState.getBlock();
 	   	if (block == IMPSBlocks.BLUESTONE_WIRE.get())
 	   	{
 	   		return true;
 	   	}
-	   	else if (blockState.getBlock() == IMPSBlocks.BLUESTONE_TABLE.get() || world.getBlockEntity(pos) instanceof BaseContainerBlockEntity)
+	   	else if (block == IMPSBlocks.BLUESTONE_TABLE.get() || world.getBlockEntity(pos) instanceof BaseContainerBlockEntity)
 	   	{
-	   		return side != Direction.UP && side != Direction.DOWN && side != null;
+	   		return side != Direction.UP && side != Direction.DOWN;
 	   	} else
 	   	{
 	   		return false;
@@ -438,12 +426,6 @@ public class BluestoneWireBlock extends Block implements EntityBlock
 					case FRONT_BACK -> state.setValue(EAST, state.getValue(WEST)).setValue(WEST, state.getValue(EAST));
 					default -> super.mirror(state, mirrorIn);
 				};
-   	}
-
-   	@Override
-   	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
-   	{
-   		builder.add(NORTH, EAST, SOUTH, WEST);
    	}
 
    	@Override
@@ -485,15 +467,15 @@ public class BluestoneWireBlock extends Block implements EntityBlock
    		}
    		else
    		{
-   			if (areAllSidesValid(state) || areAllSidesInvalid(state))
-   	   		{
-   	   			BlockState blockstate = areAllSidesValid(state) ? this.defaultBlockState() : this.crossState;
-   	            if (blockstate != state) {
-   	               worldIn.setBlock(pos, blockstate, 3);
-   	               this.updateChangedConnections(worldIn, pos, state, blockstate);
-   	               return InteractionResult.SUCCESS;
-   	            }
-   	   		}
+//   			if (isFullyConnected(state) || isNotConnected(state))
+//   	   		{
+//   	   			BlockState blockstate = isFullyConnected(state) ? this.defaultBlockState() : this.crossState;
+//   	            if (blockstate != state) {
+//   	               worldIn.setBlock(pos, blockstate, 3);
+//   	               this.updateChangedConnections(worldIn, pos, state, blockstate);
+//   	               return InteractionResult.SUCCESS;
+//   	            }
+//   	   		}
 
    	   		return InteractionResult.SUCCESS;
    		}
@@ -504,7 +486,7 @@ public class BluestoneWireBlock extends Block implements EntityBlock
 		for (Direction direction : Direction.Plane.HORIZONTAL)
 		{
 			BlockPos blockpos = pos.relative(direction);
-			if (prevState.getValue(PROPERTY_BY_DIRECTION.get(direction)).isConnected() != newState.getValue(PROPERTY_BY_DIRECTION.get(direction)).isConnected() &&
+			if (getSideValue(direction, prevState).isConnected() != newState.getValue(DIRECTION_TO_SIDE.get(direction)).isConnected() &&
 					world.getBlockState(blockpos).isRedstoneConductor(world, blockpos))
 			{
 				world.updateNeighborsAtExceptFromFacing(blockpos, newState.getBlock(), direction.getOpposite());
@@ -512,12 +494,78 @@ public class BluestoneWireBlock extends Block implements EntityBlock
 		}
 	}
 
+	//DONE
+	public static BluestoneSide getSideValue(Direction direction, BlockState state)
+	{
+		if (direction != Direction.UP && direction != Direction.DOWN)
+		{
+			return state.getValue(DIRECTION_TO_SIDE.get(direction));
+		}
+		return BluestoneSide.NONE;
+	}
+
+	//DONE
+	public static BlockState setSideValue(Direction direction, BlockState oldState, BluestoneSide value)
+	{
+		if (direction != Direction.UP && direction != Direction.DOWN)
+		{
+			return oldState.setValue(DIRECTION_TO_SIDE.get(direction), value);
+		}
+		return oldState;
+	}
+
+	// set ends retroactively after every update
+	private BlockState setEnds(BlockState state)
+	{
+		BlockState newState = state;
+
+		for (Direction d : Direction.Plane.HORIZONTAL)
+		{
+			if (getSideValue(d, newState) == BluestoneSide.END) //set old ends to side
+			{
+				newState = setSideValue(d, newState, BluestoneSide.NONE);
+			}
+		}
+
+		Direction connectedSide = null;
+		for (Direction direction : Direction.Plane.HORIZONTAL)
+		{
+			if (getSideValue(direction, newState) == BluestoneSide.SIDE)
+			{
+				if (connectedSide == null) // found first connected side
+				{
+					connectedSide = direction;
+				}
+				else // more than one side is connected, so there are no ends
+				{
+					return newState;
+				}
+			}
+		}
+
+		if (connectedSide != null) // if one side is connected, make it an end
+		{
+			newState = setSideValue(connectedSide.getOpposite(), newState, BluestoneSide.END);
+		}
+		else // if no sides are connected, make all of them ends :D
+		{
+			for (Direction d : Direction.Plane.HORIZONTAL)
+			{
+				newState = setSideValue(d, newState, BluestoneSide.END);
+			}
+		}
+
+		return newState;
+	}
+
+	//DONE
    	@Override
    	public BlockEntity newBlockEntity(BlockPos pos, BlockState state)
    	{
    		return IMPSBlockEntities.BLUESTONE_WIRE.get().create(pos, state);
    	}
 
+   	//DONE
 	@Nullable
 	@Override
 	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level levelIn, BlockState state, BlockEntityType<T> entityType)

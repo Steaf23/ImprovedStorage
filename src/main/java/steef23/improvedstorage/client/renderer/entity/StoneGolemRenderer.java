@@ -6,14 +6,12 @@ import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.client.model.entity.StoneGolemModel;
 import steef23.improvedstorage.common.world.entity.StoneGolem;
-import steef23.improvedstorage.core.init.IMPSEntities;
 
 public class StoneGolemRenderer extends MobRenderer<StoneGolem, StoneGolemModel>
 {

@@ -14,6 +14,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import steef23.improvedstorage.common.world.level.block.BluestoneWireBlock;
 import steef23.improvedstorage.common.world.level.block.entity.AbstractItemPipeBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
 
@@ -87,19 +88,20 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 	private void renderDebugOverlay(BluestoneWireBlockEntity wireTE, float partialTicks, PoseStack matrixStackIn,
 			MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn)
 	{
+		BluestoneWireBlock block = (BluestoneWireBlock)wireTE.getBlockState().getBlock();
 		matrixStackIn.pushPose();
 		matrixStackIn.translate(0.5D, 0.0D, 0.5D);
 		for (Direction d: Direction.values())
 		{
-			ItemStack stack; 
-			if (wireTE.isSideConnected(d))
+			ItemStack stack;
+			switch (BluestoneWireBlock.getSideValue(d, wireTE.getBlockState()))
 			{
-				stack = new ItemStack(Items.GREEN_CONCRETE);
+				case SIDE, UP -> stack = new ItemStack(Items.GREEN_CONCRETE);
+				case NONE -> stack = new ItemStack(Items.BARRIER);
+				case END -> stack = new ItemStack(Items.BEDROCK);
+				default -> stack = ItemStack.EMPTY;
 			}
-			else
-			{
-				stack = new ItemStack(Items.RED_CONCRETE);
-			}
+
 			this.renderFacedOverlay(d, stack, partialTicks, matrixStackIn, bufferIn, combinedLightIn, combinedOverlayIn);
 		}
 		matrixStackIn.popPose();

@@ -7,8 +7,10 @@
 	"block.improvedstorage.bluestone_block": "Block of Bluestone",
 	"block.improvedstorage.stone_chest": "Stone Reinforced Chest",
 	"block.improvedstorage.bluestone_table": "Bluestone Infused Crafting Table",
+	"block.improvedstorage.kiln": "Kiln",
 	
 	"container.improvedstorage.stone_chest": "Stone Reinforced Chest",
+	"container.kiln": "Kiln",
 	
 	"entity.improvedstorage.stone_golem_entity": "Stone Golem"
 }

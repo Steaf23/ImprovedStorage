@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/orientable_with_bottom",
+  "textures": {
+    "top": "improvedstorage:block/kiln_top",
+    "bottom": "improvedstorage:block/kiln_bottom",
+    "side": "improvedstorage:block/kiln_side",
+    "front": "improvedstorage:block/kiln_front_on"
+  }
+}

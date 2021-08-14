@@ -6,6 +6,7 @@ import net.minecraftforge.fmllegacy.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import steef23.improvedstorage.ImprovedStorage;
+import steef23.improvedstorage.common.world.inventory.KilnMenu;
 import steef23.improvedstorage.common.world.inventory.StoneChestMenu;
 import steef23.improvedstorage.common.world.inventory.StoneGolemMenu;
 
@@ -17,5 +18,8 @@ public class IMPSMenus
 			.register("stone_chest", () -> IForgeContainerType.create(StoneChestMenu::new));
 	
 	public static final RegistryObject<MenuType<StoneGolemMenu>> STONE_GOLEM = MENU_TYPES
-			.register("golem_container", () -> IForgeContainerType.create(StoneGolemMenu::new));
+			.register("stone_golem", () -> IForgeContainerType.create(StoneGolemMenu::new));
+
+	public static final RegistryObject<MenuType<KilnMenu>> KILN = MENU_TYPES
+			.register("kiln", () -> IForgeContainerType.create(KilnMenu::new));
 }

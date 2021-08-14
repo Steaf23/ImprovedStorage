@@ -38,7 +38,7 @@ public class BluestoneWireBlockEntity extends AbstractItemPipeBlockEntity
 			return false;
 		}
 		Block wireBlock = this.getBlockState().getBlock();
-		return wireBlock instanceof BluestoneWireBlock && ((BluestoneWireBlock) wireBlock).getSide(this.level, this.getBlockPos(), direction).isConnected();
+		return wireBlock instanceof BluestoneWireBlock && BluestoneWireBlock.getSideValue(direction, this.getBlockState()).isConnected();
 	}
 	
 	@Override
@@ -48,7 +48,7 @@ public class BluestoneWireBlockEntity extends AbstractItemPipeBlockEntity
 		Block block = this.getBlockState().getBlock();
 		if (block instanceof BluestoneWireBlock)
 		{
-			if (((BluestoneWireBlock)block).getSide(this.level, this.getBlockPos(), source.getOpposite()).isEnd())
+			if (BluestoneWireBlock.getSideValue(source.getOpposite(), this.getBlockState()).isEnd())
 			{
 				return source.getOpposite();
 			}

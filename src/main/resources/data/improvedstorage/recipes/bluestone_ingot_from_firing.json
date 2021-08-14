@@ -1,0 +1,9 @@
+{
+  "type": "improvedstorage:firing",
+  "ingredient": {
+    "item": "improvedstorage:bluestone_blend"
+  },
+  "result": "improvedstorage:bluestone_ingot",
+  "experience": 1.0,
+  "cookingtime": 200
+}
