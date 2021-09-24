@@ -42,14 +42,23 @@ public class FiringSerializer extends ForgeRegistryEntry<RecipeSerializer<?>> im
 
     @Nullable
     @Override
-    public FiringRecipe fromNetwork(ResourceLocation p_44105_, FriendlyByteBuf p_44106_)
+    public FiringRecipe fromNetwork(ResourceLocation location, FriendlyByteBuf byteBuf)
     {
-        return null;
+        String s = byteBuf.readUtf();
+        Ingredient ingredient = Ingredient.fromNetwork(byteBuf);
+        ItemStack itemstack = byteBuf.readItem();
+        float f = byteBuf.readFloat();
+        int i = byteBuf.readVarInt();
+        return new FiringRecipe(location, s, ingredient, itemstack, f, i);
     }
 
     @Override
-    public void toNetwork(FriendlyByteBuf p_44101_, FiringRecipe p_44102_)
+    public void toNetwork(FriendlyByteBuf byteBuf, FiringRecipe recipe)
     {
-
+        byteBuf.writeUtf(recipe.getGroup());
+        recipe.getIngredients().get(0).toNetwork(byteBuf);
+        byteBuf.writeItem(recipe.getResultItem());
+        byteBuf.writeFloat(recipe.getExperience());
+        byteBuf.writeVarInt(recipe.getCookingTime());
     }
 }

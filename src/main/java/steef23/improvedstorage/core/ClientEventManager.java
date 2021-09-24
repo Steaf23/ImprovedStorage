@@ -11,6 +11,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import steef23.improvedstorage.ImprovedStorage;
+import steef23.improvedstorage.client.gui.screens.KilnScreen;
 import steef23.improvedstorage.client.gui.screens.StoneChestScreen;
 import steef23.improvedstorage.client.gui.screens.StoneGolemScreen;
 import steef23.improvedstorage.client.model.entity.StoneGolemModel;
@@ -31,6 +32,7 @@ public class ClientEventManager
 		//register screens
 		MenuScreens.register(IMPSMenus.STONE_CHEST.get(), StoneChestScreen::new);
 		MenuScreens.register(IMPSMenus.STONE_GOLEM.get(), StoneGolemScreen::new);
+		MenuScreens.register(IMPSMenus.KILN.get(), KilnScreen::new);
 
 		//set rendertypes
 		ItemBlockRenderTypes.setRenderLayer(IMPSBlocks.BLUESTONE_WIRE.get(), RenderType.cutout());
