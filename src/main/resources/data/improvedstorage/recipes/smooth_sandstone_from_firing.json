@@ -1,9 +1,9 @@
 {
   "type": "improvedstorage:firing",
   "ingredient": {
-    "item": "minecraft:deepslate_bricks"
+    "item": "minecraft:sandstone"
   },
-  "result": "minecraft:cracked_deepslate_bricks",
+  "result": "minecraft:smooth_sandstone",
   "experience": 0.1,
   "cookingtime": 100
 }
