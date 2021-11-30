@@ -36,10 +36,10 @@ import java.util.Objects;
 public class StoneGolem extends AbstractGolem implements MenuProvider
 {
 	private final int inventorySize = 36;
-	private IItemHandlerModifiable inventory = getOrCreateHandler();
-	private LazyOptional<IItemHandlerModifiable> itemHandler = LazyOptional.of(() -> inventory);
+	private final IItemHandlerModifiable inventory = getOrCreateHandler();
+	private final LazyOptional<IItemHandlerModifiable> itemHandler = LazyOptional.of(() -> inventory);
 	
-	private static final double defaultMoveSpeed = (double)0.2f;
+	private static final double defaultMoveSpeed = 0.2D;
 	private boolean isInteracting = false;
 	
 	public StoneGolem(EntityType<? extends StoneGolem> type, Level worldIn)
@@ -134,7 +134,7 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 		}
 		
 		this.onItemPickup(itemEntity);
-		itemEntity.remove(false);
+		itemEntity.discard();
 	}
 	
 	private ItemStack mergeItemStacksWithCarry(int slotIndex, ItemStack itemstackInv, ItemStack itemstack2) 

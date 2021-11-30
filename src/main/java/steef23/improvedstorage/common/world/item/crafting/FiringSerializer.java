@@ -10,7 +10,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
 import javax.annotation.Nullable;
@@ -22,7 +21,7 @@ public class FiringSerializer extends ForgeRegistryEntry<RecipeSerializer<?>> im
     public FiringRecipe fromJson(ResourceLocation location, JsonObject object)
     {
         String s = GsonHelper.getAsString(object, "group", "");
-        JsonElement jsonelement = (JsonElement)(GsonHelper.isArrayNode(object, "ingredient") ? GsonHelper.getAsJsonArray(object, "ingredient") : GsonHelper.getAsJsonObject(object, "ingredient"));
+        JsonElement jsonelement = GsonHelper.isArrayNode(object, "ingredient") ? GsonHelper.getAsJsonArray(object, "ingredient") : GsonHelper.getAsJsonObject(object, "ingredient");
         Ingredient ingredient = Ingredient.fromJson(jsonelement);
         //Forge: Check if primitive string to keep vanilla or a object which can contain a count field.
         if (!object.has("result")) throw new com.google.gson.JsonSyntaxException("Missing result, expected to find a string or object");
@@ -31,9 +30,7 @@ public class FiringSerializer extends ForgeRegistryEntry<RecipeSerializer<?>> im
         else {
             String s1 = GsonHelper.getAsString(object, "result");
             ResourceLocation resourcelocation = new ResourceLocation(s1);
-            itemstack = new ItemStack(Registry.ITEM.getOptional(resourcelocation).orElseThrow(() -> {
-                return new IllegalStateException("Item: " + s1 + " does not exist");
-            }));
+            itemstack = new ItemStack(Registry.ITEM.getOptional(resourcelocation).orElseThrow(() -> new IllegalStateException("Item: " + s1 + " does not exist")));
         }
         float f = GsonHelper.getAsFloat(object, "experience", 0.0F);
         int i = GsonHelper.getAsInt(object, "cookingtime", 100);

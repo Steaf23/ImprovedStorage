@@ -12,7 +12,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.util.Constants;
@@ -54,7 +53,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 			//INSERT INTO OTHER INVENTORIES
 			for (PipeItem item : blockEntity.items)
 			{
-				if (item.getTicksInPipe() >= blockEntity.getSpeed() && !item.isRemoved)
+				if (item.getTicksInPipe() >= item.speed && !item.isRemoved)
 				{
 					Direction target = item.getTarget();
 					switch (blockEntity.sendItem(item, target))
@@ -192,7 +191,9 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 
 	public void receiveItemStack(ItemStack stack, @Nullable Direction source)
 	{
-		this.receiveItem(new PipeItem(stack, source));
+		float speed = stack.getCount() / 64.0f;
+		speed = speed * (20 - 10) + 10;
+		this.receiveItem(new PipeItem(stack, source, (int)speed));
 	}
 
 	public void receiveItem(PipeItem item)
@@ -371,8 +372,6 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	private static ItemStack insertStack(IItemHandlerModifiable targetHandler, ItemStack stack, int index, Direction direction)
 	{
 		ItemStack itemstack = targetHandler.getStackInSlot(index);
-//		if (canInsertItemInSlot(targetHandler, stack, index, direction))
-//		{
 		boolean success = false;
 		if (itemstack.isEmpty())
 		{
@@ -446,17 +445,20 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	public static class PipeItem
 	{
 		private ItemStack stack;
+		// How may ticks does it need to stay in the pipe?
+		private final int speed;
     	private int ticksInPipe;
     	private Direction target;
     	private Direction source;
     	private boolean isRemoved;
     	
-    	protected PipeItem(ItemStack stack, @Nullable Direction source)
+    	protected PipeItem(ItemStack stack, @Nullable Direction source, int speed)
     	{
     		this.ticksInPipe = 0;
     		this.stack = stack;
     		this.source = source == null ? Direction.SOUTH : source;
     		this.isRemoved = false;
+    		this.speed = speed;
     	}
     	
     	protected void tick()
@@ -475,6 +477,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
     		tag.putByte("Ticks", (byte)getTicksInPipe());
     		tag.putByte("Target", (byte)target.get3DDataValue());
     		tag.putByte("Source", (byte)source.get3DDataValue());
+    		tag.putByte("Speed", (byte)speed);
     		return tag;
     	}
     	
@@ -484,8 +487,9 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
     		Direction target = Direction.from3DDataValue(tag.getByte("Target"));
     		Direction source = Direction.from3DDataValue(tag.getByte("Source"));
     		int ticksInPipe = tag.getByte("Ticks");
+    		int speed = tag.getByte("Speed");
     		
-    		PipeItem pipeItem = new PipeItem(item, source);
+    		PipeItem pipeItem = new PipeItem(item, source, speed);
     		pipeItem.ticksInPipe = ticksInPipe;
     		pipeItem.target = target;
     		return pipeItem;
@@ -495,17 +499,15 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
     	{
     		return stack;
     	}
-    	
     	public int getTicksInPipe()
     	{
     		return ticksInPipe;
     	}
-    	
+		public int getSpeed() { return speed; }
     	public Direction getTarget()
     	{
     		return target;
     	}
-    	
     	public Direction getSource()
 		{
 			return source;
@@ -531,7 +533,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
     	
     	public PipeItem getCopy()
     	{
-    		return new PipeItem(this.stack, this.source).getWithTarget(this.target).getWithTicks(this.ticksInPipe);
+    		return new PipeItem(this.stack, this.source, this.speed).getWithTarget(this.target).getWithTicks(this.ticksInPipe);
     	}
 	}
 }

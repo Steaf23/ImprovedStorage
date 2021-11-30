@@ -61,7 +61,7 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 		
 		matrixStackIn.pushPose();
 		
-		double speed = BluestoneWireBlockEntity.SPEED;
+		double speed = item.getSpeed();
 		int ticks = item.getTicksInPipe();
 		Vector3d lerpPos;
 		if (ticks < speed / 2)
@@ -79,8 +79,10 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 					   			   Mth.lerp(currentPosition, middlePos.z, targetPos.z));
 		}
 		matrixStackIn.translate(lerpPos.x, lerpPos.y, lerpPos.z);
-		
-		matrixStackIn.scale(0.7f, 0.7f, 0.7f);
+
+		float scale = (float)item.getItemStack().getCount() / 64.0f;
+		scale = scale*(0.9f - 0.5f) + 0.5f;
+		matrixStackIn.scale(scale, scale, scale);
 		Minecraft.getInstance().getItemRenderer().renderStatic(item.getItemStack(), ItemTransforms.TransformType.FIXED, combinedLightIn, combinedOverlayIn, matrixStackIn, bufferIn, 0);
 		matrixStackIn.popPose();
 	}
