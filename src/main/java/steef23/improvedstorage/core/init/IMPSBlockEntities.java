@@ -1,9 +1,9 @@
 package steef23.improvedstorage.core.init;
 
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraftforge.fmllegacy.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import steef23.improvedstorage.ImprovedStorage;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneTableBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;

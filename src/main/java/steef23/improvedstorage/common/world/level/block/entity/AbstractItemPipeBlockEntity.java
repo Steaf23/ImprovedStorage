@@ -1,5 +1,6 @@
 package steef23.improvedstorage.common.world.level.block.entity;
 
+import com.mojang.math.Constants;
 import com.mojang.math.Vector3d;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,7 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.VanillaInventoryCodeHooks;
@@ -313,14 +313,14 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	{
 		assert this.level != null;
 		super.setChanged();
-		this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), Constants.BlockFlags.BLOCK_UPDATE);
+		this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
 	}
 
 	@Nullable
     @Override
     public ClientboundBlockEntityDataPacket getUpdatePacket()
 	{
-        return new ClientboundBlockEntityDataPacket(this.getBlockPos(), -1, this.getUpdateTag());
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override

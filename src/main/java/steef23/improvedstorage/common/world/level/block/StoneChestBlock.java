@@ -33,7 +33,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.fmllegacy.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
 import steef23.improvedstorage.common.world.entity.StoneGolem;
 import steef23.improvedstorage.common.world.level.block.entity.StoneChestBlockEntity;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
@@ -69,7 +69,7 @@ public class StoneChestBlock extends AbstractChestBlock<StoneChestBlockEntity> i
 	{
 		if (stateIn.getValue(WATERLOGGED))
 		{
-			worldIn.getLiquidTicks().scheduleTick(currentPos, Fluids.WATER, Fluids.FLOWING_WATER.getTickDelay(worldIn));
+			worldIn.scheduleTick(currentPos, Fluids.WATER, Fluids.FLOWING_WATER.getTickDelay(worldIn));
 		}
 		return super.updateShape(stateIn, facing, facingState, worldIn, currentPos, facingPos);
 	}
