@@ -297,15 +297,13 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	}
 
 	@Override
-	public CompoundTag save(CompoundTag nbt)
+	protected void saveAdditional(CompoundTag nbt)
 	{
 		super.save(nbt);
 		ListTag items = new ListTag();
 		this.items.forEach(item -> items.add(item.save(new CompoundTag())));
 		nbt.put("Items", items);
-		return nbt;
 	}
-
 
 
 	@Override

@@ -107,13 +107,12 @@ public class StoneChestBlockEntity extends RandomizableContainerBlockEntity impl
 	}
 
 	@Override
-	public CompoundTag save(CompoundTag compound)
+	protected void saveAdditional(CompoundTag nbt)
 	{
-		super.save(compound);
-		if (!this.trySaveLootTable(compound)) {
-			ContainerHelper.saveAllItems(compound, this.chestContents);
+		super.save(nbt);
+		if (!this.trySaveLootTable(nbt)) {
+			ContainerHelper.saveAllItems(nbt, this.chestContents);
 		}
-		return compound;
 	}
 
 	@Override
