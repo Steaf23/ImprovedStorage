@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import steef23.improvedstorage.common.world.level.block.BluestoneSide;
 import steef23.improvedstorage.common.world.level.block.BluestoneWireBlock;
 import steef23.improvedstorage.core.init.IMPSBlockEntities;
 
@@ -78,11 +79,10 @@ public class BluestoneWireBlockEntity extends AbstractItemPipeBlockEntity
 	}
 	
 	@Override
-	public CompoundTag save(CompoundTag nbt)
+	public void saveAdditional(CompoundTag nbt)
 	{
-		super.save(nbt);
+		super.saveAdditional(nbt);
 		nbt.putBoolean("Debug", this.renderDebug);
-		return nbt;
 	}
 	
 	@Override
@@ -90,6 +90,17 @@ public class BluestoneWireBlockEntity extends AbstractItemPipeBlockEntity
 	{
 		super.load(nbt);
 		this.renderDebug = nbt.getBoolean("Debug");
+	}
+
+	@Override
+	public void bounceItem(PipeItem item, Direction target, AbstractItemPipeBlockEntity blockEntity)
+	{
+		Block b = blockEntity.getBlockState().getBlock();
+		if (b instanceof BluestoneWireBlock && BluestoneWireBlock.getSideValue(target, getBlockState()).isEnd())
+		{
+			blockEntity.dropItem(item, null);
+		}
+		super.bounceItem(item, target, blockEntity);
 	}
 }
 

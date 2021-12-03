@@ -62,7 +62,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 							item = item.remove();
 							blockEntity.needsUpdate = true;
 						}
-						default -> resetTargets(blockEntity);
+						default -> blockEntity.bounceItem(item, target, blockEntity);
 					}
 				}
 			}
@@ -95,6 +95,11 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 		{
 			item.tick();
 		}
+	}
+
+	public void bounceItem(PipeItem item, Direction target, AbstractItemPipeBlockEntity blockEntity)
+	{
+		resetTargets(blockEntity);
 	}
 
 	public InteractionResult sendItem(PipeItem item, Direction outgoingFace)
@@ -299,7 +304,7 @@ public abstract class AbstractItemPipeBlockEntity extends BlockEntity
 	@Override
 	protected void saveAdditional(CompoundTag nbt)
 	{
-		super.save(nbt);
+		super.saveAdditional(nbt);
 		ListTag items = new ListTag();
 		this.items.forEach(item -> items.add(item.save(new CompoundTag())));
 		nbt.put("Items", items);

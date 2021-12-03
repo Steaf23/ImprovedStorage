@@ -11,9 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 import steef23.improvedstorage.common.world.level.block.BluestoneWireBlock;
 import steef23.improvedstorage.common.world.level.block.entity.AbstractItemPipeBlockEntity;
 import steef23.improvedstorage.common.world.level.block.entity.BluestoneWireBlockEntity;
@@ -26,7 +24,7 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 	}
 
 	@Override
-	public void render(BluestoneWireBlockEntity wireTE, float partialTicks, PoseStack matrixStackIn, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn)
+	public void render(BluestoneWireBlockEntity wireTE, float partialTicks, PoseStack matrixStackIn, @NotNull MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn)
 	{
 		matrixStackIn.pushPose();
 
@@ -83,14 +81,13 @@ public class BluestoneWireRenderer<T extends BluestoneWireBlockEntity> implement
 		float scale = (float)item.getItemStack().getCount() / 64.0f;
 		scale = scale*(0.9f - 0.5f) + 0.5f;
 		matrixStackIn.scale(scale, scale, scale);
-		Minecraft.getInstance().getItemRenderer().renderStatic(item.getItemStack(), ItemTransforms.TransformType.FIXED, combinedLightIn, combinedOverlayIn, matrixStackIn, bufferIn, 0);
+		Minecraft.getInstance().getItemRenderer().renderStatic(item.getItemStack(), ItemTransforms.TransformType.GROUND, combinedLightIn, combinedOverlayIn, matrixStackIn, bufferIn, 0);
 		matrixStackIn.popPose();
 	}
 	
 	private void renderDebugOverlay(BluestoneWireBlockEntity wireTE, float partialTicks, PoseStack matrixStackIn,
 			MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn)
 	{
-		BluestoneWireBlock block = (BluestoneWireBlock)wireTE.getBlockState().getBlock();
 		matrixStackIn.pushPose();
 		matrixStackIn.translate(0.5D, 0.0D, 0.5D);
 		for (Direction d: Direction.values())
