@@ -47,7 +47,7 @@ public class ImprovedStorage
         @Override
         public ItemStack makeIcon()
         {
-            return new ItemStack(Blocks.CHEST);
+            return new ItemStack(IMPSBlocks.BLUESTONE_TABLE.get());
         }
     }
 }
