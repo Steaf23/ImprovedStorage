@@ -1,7 +1,11 @@
 package steef23.improvedstorage.common.world.entity;
 
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -14,27 +18,30 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.animal.AbstractGolem;
-import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.ChestLidController;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.ItemHandlerHelper;
-import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.network.NetworkHooks;
 import steef23.improvedstorage.common.world.inventory.StoneGolemMenu;
 
 import javax.annotation.Nullable;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,6 +53,8 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 	
 	private static final double defaultMoveSpeed = 0.2D;
 	private boolean isInteracting = false;
+
+	private final ChestLidController lidController = new ChestLidController();
 	
 	public StoneGolem(EntityType<? extends StoneGolem> type, Level worldIn)
 	{
@@ -64,7 +73,7 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 		super.registerGoals();
 		this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 6.0f));
 		this.goalSelector.addGoal(2, new RandomStrollGoal(this, 0.6D));
-		this.goalSelector.addGoal(2, new StoneGolem.LookForItemsGoal());
+		this.goalSelector.addGoal(11, new StoneGolem.LookForItemsGoal());
 	}
 
 	public static AttributeSupplier.Builder createAttributes()
@@ -88,8 +97,10 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 				   	this.getX() + 5.0f,
 				   	this.getY() + 5.0f,
 				   	this.getZ() + 5.0f)
-				)) 
+				))
 		   	{
+		   		// should be fixed, but has the nice side effect of freezing all golems around the player
+				// when they are interfacing with any stonegolem
 				this.isInteracting = player.containerMenu instanceof StoneGolemMenu;
 		   	}
 		if (this.isInteracting)
@@ -101,7 +112,16 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 			Objects.requireNonNull(this.getAttribute(Attributes.MOVEMENT_SPEED)).setBaseValue(defaultMoveSpeed);
 		}
 	}
-	
+
+	@Override
+	public void tick()
+	{
+		lidController.shouldBeOpen(this.isInteracting);
+		lidController.tickLid();
+//		eatItem(new ItemStack(Items.BEDROCK));
+		super.tick();
+	}
+
 	@Override
     protected void dropEquipment()
 	{
@@ -123,7 +143,7 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 	{
 		ItemStack itemStack = itemEntity.getItem();
 
-		ItemStack remainder = ItemHandlerHelper.insertItem(this.inventory, itemStack, false);
+		ItemStack remainder = insertItemIntoGolem(itemStack);
 
 		if (remainder.isEmpty())
 		{
@@ -137,78 +157,26 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 		}
 	}
 
-	//Insert an item into the golems inventory, returning the remainder if the inventory was full
-	public ItemStack insertItemIntoInventory(ItemStack itemStack)
+	public ItemStack insertItemIntoGolem(ItemStack itemStack)
 	{
-		if (!canAddItem(itemStack))
-			return itemStack;
-
-		for (int i = 0; i < this.inventory.getSlots(); i++)
-		{
-			ItemStack itemstackInv = this.inventory.getStackInSlot(i).copy();
-			// does the slot contain the same item with space left? Merge.
-			if (ItemStack.isSameItemSameTags(itemstackInv, itemStack)
-					&& itemstackInv.getCount() < itemstackInv.getMaxStackSize())
-			{
-				itemStack = mergeItemStacksWithCarry(i, itemstackInv, itemStack);
-			}
-			// is the inv slot empty?
-			else if (itemstackInv.isEmpty())
-			{
-				this.inventory.insertItem(i, itemStack, false);
-				break;
-			}
-		}
-
-		return itemStack;
-
-		//TODO: play eating animation?
+		if (level.isClientSide)
+			eatItem(itemStack);
+		return ItemHandlerHelper.insertItem(this.inventory, itemStack, false);
 	}
 
-	private boolean canAddItem(ItemStack stack)
+	//TODO: Fix this
+	public void eatItem(ItemStack itemStack)
 	{
-		boolean result = false;
-		for (int i = 0 ; i < this.inventory.getSlots(); i++)
-		{
-			ItemStack item = this.inventory.getStackInSlot(i);
-			if (ItemStack.isSameItemSameTags(item, stack)
-					&& item.getCount() < item.getMaxStackSize())
-			{
-				result = true;
-				break;
-			}
-		}
-		return result;
-	}
-	
-	private ItemStack mergeItemStacksWithCarry(int slotIndex, ItemStack itemstackInv, ItemStack itemstack2) 
-	{
-		int additionStackCount = itemstackInv.getCount() + itemstack2.getCount();
-		 int resultStackSize = additionStackCount % itemstackInv.getMaxStackSize();
-		 //does the stack actually need to be NOT merged?
-		 if (additionStackCount < itemstackInv.getMaxStackSize())
-		 {
-			 //fill up the Inventory stack
-			 this.inventory.insertItem(slotIndex, new ItemStack(itemstackInv.getItem(), itemstack2.getCount()), false);
-			 return ItemStack.EMPTY;
-		 }
-		 else
-		 {
-			 this.inventory.insertItem(slotIndex, new ItemStack(itemstackInv.getItem(), itemstackInv.getMaxStackSize() - itemstackInv.getCount()), false);
-			 return new ItemStack(itemstackInv.getItem(), resultStackSize);
-		 }
-	}
+		if (itemStack.isEmpty())
+			return;
 
-	public int getFirstEmptyStackOrMerge(IItemHandlerModifiable inventory, ItemStack itemstack)
-	{
-		for(int i = 0; i < this.inventory.getSlots(); ++i) 
-		{
-	         if (this.inventory.getStackInSlot(i).isEmpty()) 
-	         {
-	            return i;
-	         }
-	      }
-	      return -1;
+		this.playSound(SoundEvents.GRINDSTONE_USE, 1.0F, 1.0F);
+
+		ItemParticleOption data = new ItemParticleOption(ParticleTypes.ITEM, itemStack);
+		float angle = level.random.nextFloat() * 360;
+		Vec3 origin = position().add(new Vec3(0.0, -0.5, 0.0));
+		Vec3 target = new Vec3(level.random.nextFloat() * 2, level.random.nextFloat() * 2, level.random.nextFloat() * 2).add(origin);
+		level.addParticle(data, origin.x, origin.y, origin.z, target.x, target.y, target.z);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -248,8 +216,14 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 		{
 			if (!player.getItemInHand(hand).isEmpty())
 			{
-				ItemHandlerHelper.insertItem(this.inventory, player.getItemInHand(hand), false);
-				player.setItemInHand(hand, ItemStack.EMPTY);
+				int count = player.getItemInHand(hand).getCount();
+				ItemStack remainder = insertItemIntoGolem(player.getItemInHand(hand));
+				player.setItemInHand(hand, remainder);
+
+				if (count == remainder.getCount())
+				{
+					NetworkHooks.openGui((ServerPlayer) player, this);
+				}
 			}
 			else
 			{
@@ -285,19 +259,47 @@ public class StoneGolem extends AbstractGolem implements MenuProvider
 		return new StoneGolemMenu(windowId, playerInventory, this);
 	}
 
-	class LookForItemsGoal extends Goal {
+	public float GetOpenNess(float partialTicks)
+	{
+		return lidController.getOpenness(partialTicks);
+	}
+
+	class LookForItemsGoal extends Goal
+	{
+
+		public LookForItemsGoal()
+		{
+			this.setFlags(EnumSet.of(Flag.MOVE));
+		}
 
 		@Override
 		public boolean canUse()
 		{
 			List<ItemEntity> list = StoneGolem.this.level.getEntitiesOfClass(ItemEntity.class, StoneGolem.this.getBoundingBox().inflate(8.0D, 8.0D, 8.0D));
-			if (list.size() > 0)
-			{
-				System.out.println("ITEMS!!!!");
-				return true;
-			}
+			return list.size() > 0;
+		}
 
-			return false;
+		@Override
+		public void tick()
+		{
+			List<ItemEntity> list = StoneGolem.this.level.getEntitiesOfClass(ItemEntity.class, StoneGolem.this.getBoundingBox().inflate(8.0D, 8.0D, 8.0D));
+
+			//TODO: Check if Inventory is full
+			if (!list.isEmpty()) {
+				StoneGolem.this.getNavigation().moveTo(list.get(0), 1.2D);
+			}
+		}
+
+		@Override
+		public void start()
+		{
+			List<ItemEntity> list = StoneGolem.this.level.getEntitiesOfClass(ItemEntity.class, StoneGolem.this.getBoundingBox().inflate(8.0D, 8.0D, 8.0D));
+
+
+			//TODO: Check if Inventory is full
+			if (!list.isEmpty()) {
+				StoneGolem.this.getNavigation().moveTo(list.get(0), 1.2D);
+			}
 		}
 	}
 

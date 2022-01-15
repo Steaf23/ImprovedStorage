@@ -16,6 +16,6 @@ public class IMPSEntities
 	public static final RegistryObject<EntityType<StoneGolem>> STONE_GOLEM = ENTITY_TYPES
 			.register("stone_golem_entity", 
 					() -> EntityType.Builder.of(StoneGolem::new, MobCategory.CREATURE)
-					.sized(1.0f, 1.6f)
+					.sized(0.7f, 1.6f)
 					.build(new ResourceLocation(ImprovedStorage.MOD_ID, "stone_golem_entity").toString()));
 }

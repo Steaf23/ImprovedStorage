@@ -12,6 +12,7 @@ import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.util.Mth;
 import steef23.improvedstorage.common.world.entity.StoneGolem;
 
 public class StoneGolemModel extends EntityModel<StoneGolem>
@@ -66,7 +67,18 @@ public class StoneGolemModel extends EntityModel<StoneGolem>
 
 	@Override
 	public void setupAnim(StoneGolem entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
-		// Use this method to setup the animation and rotation angles
+		this.leg_r.xRot = -1.5F * Mth.triangleWave(limbSwing, 13.0F) * limbSwingAmount;
+		this.leg_l.xRot = 1.5F * Mth.triangleWave(limbSwing, 13.0F) * limbSwingAmount;
+		this.arm_l.xRot = -1.5F * Mth.triangleWave(limbSwing, 13.0F) * limbSwingAmount;
+		this.arm_r.xRot = 1.5F * Mth.triangleWave(limbSwing, 13.0F) * limbSwingAmount;
+		this.leg_r.yRot = 0.0F;
+		this.leg_l.yRot = 0.0F;
+	}
+
+	@Override
+	public void prepareMobModel(StoneGolem entity, float p_102615_, float p_102616_, float partialTicks)
+	{
+		this.head.xRot = -(float)(entity.GetOpenNess(partialTicks) * (Math.PI / 2.0F) * 0.6);
 	}
 
 	@Override
